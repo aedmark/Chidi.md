@@ -5,76 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>chidi.md // Markdown Reader & Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.6/dist/purify.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+    <div id="app-container"></div>
 
-    <div id="console-panel">
-        
-        <header class="console-header">
-            <h1 id="mainTitle">chidi.md</h1>
-            <div id="loader" class="loader hidden"></div>
-        </header>
-
-        <main id="markdownDisplay" class="markdown-content">
-            <p class="placeholder-text">Awaiting file selection to initialize display screen...</p>
-        </main>
-
-        <div class="controls-container">
-            <div class="control-group">
-                <button id="prevBtn" disabled>&larr; PREV</button>
-                <button id="nextBtn" disabled>NEXT &rarr;</button>
-                <button id="scanFolderBtn" title="Scan a folder and its subfolders for .md files">Scan Folder</button>
-                <label for="mdFileInput" class="file-input-label">
-                    <span id="fileInputLabel">ADD FILES</span>
-                    <input type="file" id="mdFileInput" multiple accept=".md" class="hidden">
-                </label>
-            </div>
-            <div class="control-group">
-                <button id="summarizeBtn" disabled>Summarize</button>
-                <button id="suggestQuestionsBtn" disabled>Suggest</button>
-                <button id="askAllFilesBtn" disabled title="Ask a question across all loaded files">Ask All</button>
-            </div>
-            <div class="control-group">
-                 <div class="session-controls">
-                    <button id="saveSessionBtn" title="Save loaded files and history">Save</button>
-    	            <button id="restartSessionBtn" title="Clear all data and start a new session">Restart</button>
-                </div>
-            </div>
-        </div>
-
-        <footer class="status-readout">
-            <div id="fileCountDisplay" class="status-item">FILES: 0</div>
-            <div id="messageBox" class="status-message">SYSTEM LOG: Standby.</div>
-        </footer>
-
-    </div>
-
-    <div id="restoreSessionModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3>Saved Session Found</h3>
-            <p>Would you like to restore your previous session?</p>
-            <div class="modal-actions">
-                <button id="confirmRestoreBtn">Yes, Restore</button>
-                <button id="denyRestoreBtn">No, Start Fresh</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="inputModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 id="inputModalTitle">Input Required</h3>
-            <p id="inputModalText">Please provide the requested information below.</p>
-            <input type="text" id="inputModalField" class="modal-input" placeholder="Enter value...">
-            <div class="modal-actions">
-                <button id="confirmInputBtn">Confirm</button>
-                <button id="cancelInputBtn">Cancel</button>
-            </div>
-        </div>
-    </div>
+    <input type="file" id="mdFileInput" multiple accept=".md,.txt,.js,.sh" class="hidden">
 
     <script src="./main.js"></script>
 </body>

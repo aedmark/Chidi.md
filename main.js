@@ -1,440 +1,385 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Element Constants ---
-    const elements = {
-        mdFileInput: document.getElementById('mdFileInput'),
-        fileInputLabel: document.getElementById('fileInputLabel'),
-        prevBtn: document.getElementById('prevBtn'),
-        nextBtn: document.getElementById('nextBtn'),
-        summarizeBtn: document.getElementById('summarizeBtn'),
-        suggestQuestionsBtn: document.getElementById('suggestQuestionsBtn'),
-        askAllFilesBtn: document.getElementById('askAllFilesBtn'),
-        scanFolderBtn: document.getElementById('scanFolderBtn'),
-        markdownDisplay: document.getElementById('markdownDisplay'),
-        messageBox: document.getElementById('messageBox'),
-        loader: document.getElementById('loader'),
-        mainTitle: document.getElementById('mainTitle'),
-        fileCountDisplay: document.getElementById('fileCountDisplay'),
-        saveSessionBtn: document.getElementById('saveSessionBtn'),
-        restartSessionBtn: document.getElementById('restartSessionBtn'),
-        restoreSessionModal: document.getElementById('restoreSessionModal'),
-        inputModal: document.getElementById('inputModal'),
-        inputModalTitle: document.getElementById('inputModalTitle'),
-        inputModalText: document.getElementById('inputModalText'),
-        inputModalField: document.getElementById('inputModalField'),
-        confirmInputBtn: document.getElementById('confirmInputBtn'),
-        cancelInputBtn: document.getElementById('cancelInputBtn'),
-    };
+    "use strict";
 
     // --- Application State ---
     let state = {
         loadedFiles: [],
-        history: [],
-        historyIndex: -1,
-        currentDisplayedMarkdownContent: '',
+        currentIndex: -1,
+        isVerbose: false,
         geminiChatHistory: [],
         apiKey: null,
+        isChatActive: false,
     };
 
-    const defaultTitle = "chidi.md";
-    const SESSION_STORAGE_KEY = 'chidiMdSession';
-    
-    // --- Modal Logic ---
-    const showInputModal = (config) => {
-        return new Promise((resolve) => {
-            elements.inputModalTitle.textContent = config.title;
-            elements.inputModalText.textContent = config.prompt;
-            elements.inputModalField.value = '';
-            elements.inputModalField.placeholder = config.placeholder || '';
-            elements.confirmInputBtn.textContent = config.confirmText || 'Confirm';
-            elements.inputModal.classList.remove('hidden');
-            elements.inputModalField.focus();
+    const SESSION_STORAGE_KEY = 'chidiMdSession_v2';
 
-            const onConfirm = () => {
-                cleanup();
-                resolve(elements.inputModalField.value);
-            };
-            const onCancel = () => {
-                cleanup();
-                resolve(null);
-            };
-            const onKeydown = (e) => {
-                if (e.key === 'Enter') onConfirm();
-                if (e.key === 'Escape') onCancel();
-            };
+    // --- DOM Element Cache ---
+    let elements = {};
 
-            const cleanup = () => {
-                elements.inputModal.classList.add('hidden');
-                elements.confirmInputBtn.removeEventListener('click', onConfirm);
-                elements.cancelInputBtn.removeEventListener('click', onCancel);
-                document.removeEventListener('keydown', onKeydown);
-            };
-
-            elements.confirmInputBtn.addEventListener('click', onConfirm);
-            elements.cancelInputBtn.addEventListener('click', onCancel);
-            document.addEventListener('keydown', onKeydown);
-        });
+    // --- Utility Functions ---
+    const getFileExtension = (filename) => filename.split('.').pop();
+    const showMessage = (msg) => {
+        if (elements.messageBox) elements.messageBox.textContent = `LOG: ${msg}`;
+        if (state.isVerbose) console.log(msg);
+    };
+    const toggleLoader = (show) => {
+        if (elements.loader) elements.loader.classList.toggle('hidden', !show);
     };
 
-    // --- Core Functions ---
-    const getApiKey = async () => {
-        if (state.apiKey) return state.apiKey;
-        const key = await showInputModal({
-            title: "API Key Required",
-            prompt: "Please enter your Gemini API Key to use AI features.",
-            placeholder: "Enter your API key here",
-            confirmText: "Save Key"
-        });
-        if (key) {
-            state.apiKey = key;
-            showMessage("API Key accepted. Saving to session.", "info");
-            saveSession();
-            return key;
-        }
-        showMessage("API Key not provided. AI features are disabled.", "warn");
-        return null;
-    };
-
-    const getApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`;
-    const convertMarkdownToHtml = (markdownText) => marked.parse(markdownText);
-    const showMessage = (message, type = 'info') => {
-        elements.messageBox.textContent = `SYSTEM LOG: ${message}`;
-        console[type === 'error' ? 'error' : (type === 'warn' ? 'warn' : 'info')](message);
-    };
-    const toggleLoader = (show) => elements.loader.classList.toggle('hidden', !show);
-    const getCleanFilename = (filename) => {
-        if (!filename) return '';
-        const baseName = filename.substring(filename.lastIndexOf('/') + 1);
-        return baseName.replace(/\.md$/, '');
-    };
-
-    // --- Session Management ---
-    const saveSession = () => {
-        if (state.loadedFiles.length === 0 && !state.apiKey) {
-            showMessage("Nothing to save.", "warn");
-            return;
-        }
-        const sessionData = {
-            loadedFiles: state.loadedFiles,
-            history: state.history,
-            historyIndex: state.historyIndex,
-            apiKey: state.apiKey,
-            geminiChatHistory: state.geminiChatHistory
-        };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
-        showMessage("Session saved successfully!", "success");
-        const originalText = elements.saveSessionBtn.textContent;
-        elements.saveSessionBtn.textContent = 'Saved!';
-        elements.saveSessionBtn.disabled = true;
-        setTimeout(() => {
-            elements.saveSessionBtn.textContent = originalText;
-            updateUI();
-        }, 1500);
-    };
-
-    const restoreSession = () => {
-        const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
-        if (savedSession) {
-            const sessionData = JSON.parse(savedSession);
-            state.loadedFiles = sessionData.loadedFiles || [];
-            state.history = sessionData.history || [];
-            state.historyIndex = sessionData.historyIndex ?? -1;
-            state.apiKey = sessionData.apiKey || null;
-            state.geminiChatHistory = sessionData.geminiChatHistory || [];
-
-            let message = "Previous session restored.";
-            if (state.apiKey) message += " API key loaded.";
-            showMessage(message, "success");
-
-            if (state.historyIndex !== -1 && state.history[state.historyIndex] !== undefined) {
-                displayFile(state.history[state.historyIndex]);
-            }
-            elements.restoreSessionModal.classList.add('hidden');
-        } else {
-            showMessage('Awaiting file selection.', 'info');
-        }
-    };
-    
-    const restartSession = () => {
-        if (confirm("Are you sure you want to restart? This will clear all loaded files, history, and the saved API key.")) {
-            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', geminiChatHistory: [], apiKey: null };
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-            elements.markdownDisplay.innerHTML = '<p class="placeholder-text">Awaiting file selection...</p>';
-            elements.mainTitle.textContent = defaultTitle;
-            document.title = "chidi.md";
-            showMessage("Session restarted. All data cleared.", "info");
-            updateUI();
-        }
-    };
-
-    // --- UI Update Function ---
-    const updateUI = () => {
-        const hasFiles = state.loadedFiles.length > 0;
-        const isDisplayingFile = state.historyIndex > -1;
-        const hasSessionData = state.loadedFiles.length > 0 || !!state.apiKey;
-        elements.fileCountDisplay.textContent = `FILES: ${state.loadedFiles.length}`;
-        elements.prevBtn.disabled = state.historyIndex <= 0;
-        elements.nextBtn.disabled = !hasFiles;
-        elements.summarizeBtn.disabled = !isDisplayingFile;
-        elements.suggestQuestionsBtn.disabled = !isDisplayingFile;
-        elements.askAllFilesBtn.disabled = state.loadedFiles.length < 2;
-        elements.saveSessionBtn.disabled = !hasSessionData;
-        if (elements.restartSessionBtn) elements.restartSessionBtn.disabled = !hasSessionData && !localStorage.getItem(SESSION_STORAGE_KEY);
-        elements.fileInputLabel.textContent = hasFiles ? "Add More" : "Add Files";
-    };
-
-    // --- File Processing ---
-    const processAndStoreFile = (fileObject) => {
-        const newFileCleanName = getCleanFilename(fileObject.name);
-        const isDuplicate = state.loadedFiles.some(existingFile => 
-            getCleanFilename(existingFile.name) === newFileCleanName && 
-            existingFile.content === fileObject.content
-        );
-
-        if (!isDuplicate) {
-            state.loadedFiles.push(fileObject);
-            return true;
-        }
-        return false;
-    };
-    
-    // --- Display Logic ---
-    const displayFile = (fileIndex) => {
-        if (fileIndex < 0 || fileIndex >= state.loadedFiles.length) return;
-        const selectedFile = state.loadedFiles[fileIndex];
-        const cleanFilename = getCleanFilename(selectedFile.name);
-        elements.mainTitle.textContent = cleanFilename;
-        document.title = `${cleanFilename} - chidi.md`;
-        state.currentDisplayedMarkdownContent = selectedFile.content;
-        elements.markdownDisplay.innerHTML = convertMarkdownToHtml(state.currentDisplayedMarkdownContent);
-        showMessage(`Displaying: ${selectedFile.name}`, 'info');
-        state.geminiChatHistory = [{
-            role: "user",
-            parts: [{ text: `I am currently viewing an article titled "${cleanFilename}". Its full content is:\n\n\`\`\`markdown\n${state.currentDisplayedMarkdownContent}\n\`\`\`\n\nWe can discuss this article.` }]
-        }];
-        updateUI();
-    };
-    
-    const pickAndDisplayRandomFile = () => {
-        if (state.loadedFiles.length === 0) return;
-        let newRandomIndex;
-        do { newRandomIndex = Math.floor(Math.random() * state.loadedFiles.length); } 
-        while (state.loadedFiles.length > 1 && state.history.length > 0 && newRandomIndex === state.history[state.historyIndex]);
-        
-        if (state.historyIndex < state.history.length - 1) {
-            state.history = state.history.slice(0, state.historyIndex + 1);
-        }
-        state.history.push(newRandomIndex);
-        state.historyIndex = state.history.length - 1;
-        displayFile(newRandomIndex);
-    };
-
-    const addFilesAndDisplay = (fileObjects) => {
-        if (fileObjects.length === 0) return;
-        
-        let addedCount = 0;
-        const skippedFiles = [];
-        let firstNewFileIndex = -1;
-
-        for (const fileObject of fileObjects) {
-            if (processAndStoreFile(fileObject)) {
-                addedCount++;
-                if (firstNewFileIndex === -1) {
-                    firstNewFileIndex = state.loadedFiles.length - 1;
+    // --- Core Application Logic (Chidi Manager) ---
+    const App = {
+        init() {
+            // Restore session or show file prompt
+            const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+            if (savedSession) {
+                const sessionData = JSON.parse(savedSession);
+                state.loadedFiles = sessionData.loadedFiles || [];
+                state.currentIndex = sessionData.currentIndex ?? -1;
+                state.apiKey = sessionData.apiKey || null;
+                state.geminiChatHistory = sessionData.geminiChatHistory || [];
+                if (state.loadedFiles.length > 0) {
+                     UI.buildMainApp();
+                     UI.update();
+                     showMessage("Previous session restored.");
+                } else {
+                     UI.buildFilePrompt();
                 }
             } else {
-                skippedFiles.push(getCleanFilename(fileObject.name));
+                UI.buildFilePrompt();
             }
-        }
+        },
+        addFiles(fileObjects) {
+            const addedFiles = [];
+            for (const fileObject of fileObjects) {
+                const isDuplicate = state.loadedFiles.some(f => f.name === fileObject.name && f.content === fileObject.content);
+                if (!isDuplicate) {
+                    const fileExt = getFileExtension(fileObject.name);
+                    addedFiles.push({
+                        ...fileObject,
+                        isCode: ['js', 'sh'].includes(fileExt)
+                    });
+                }
+            }
 
-        let message = `Added ${addedCount} new file(s).`;
-        if (skippedFiles.length > 0) message += ` Skipped ${skippedFiles.length} duplicate(s).`;
-        
-        if (addedCount > 0) {
-            showMessage(message, 'success');
-            // If nothing was displayed before, or to show the new file:
-            const shouldDisplayNewFile = state.history.length === 0 || firstNewFileIndex !== -1;
-            if (shouldDisplayNewFile) {
-                if (state.historyIndex < state.history.length - 1) {
-                    state.history = state.history.slice(0, state.historyIndex + 1);
+            if (addedFiles.length > 0) {
+                state.loadedFiles.push(...addedFiles);
+                state.currentIndex = state.loadedFiles.length - addedFiles.length; // Point to first new file
+                if (!document.getElementById('chidi-console-panel')) {
+                    UI.buildMainApp();
                 }
-                state.history.push(firstNewFileIndex);
-                state.historyIndex = state.history.length - 1;
-                displayFile(firstNewFileIndex);
+                UI.update();
+                showMessage(`Added ${addedFiles.length} new file(s).`);
+            } else {
+                showMessage("Skipped duplicate file(s).");
             }
-        } else if (skippedFiles.length > 0) {
-            showMessage(`Skipped ${skippedFiles.length} file(s) as they are already loaded.`, 'info');
-        }
-        updateUI();
-    };
-    
-    const handleDirectoryScan = async () => {
-        if (!window.showDirectoryPicker) {
-            const message = "Folder scanning requires a compatible browser (e.g., Chrome, Edge) and must be run from a local server (http://localhost), not a file:// URL.";
-            showMessage(message, "warn");
-            alert(message);
-            return;
-        }
-        toggleLoader(true);
-        try {
-            const dirHandle = await window.showDirectoryPicker();
-            const processDirectory = async (directoryHandle, path = '') => {
-                const fileObjects = [];
-                for await (const entry of directoryHandle.values()) {
-                    const newPath = path ? `${path}/${entry.name}` : entry.name;
-                    if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-                        const file = await entry.getFile();
-                        const content = await file.text();
-                        fileObjects.push({ name: newPath, content: content });
-                    } else if (entry.kind === 'directory') {
-                        fileObjects.push(...await processDirectory(entry, newPath));
-                    }
-                }
-                return fileObjects;
+        },
+        selectFile(index) {
+            state.currentIndex = index;
+            UI.update();
+            showMessage(`Displaying: ${state.loadedFiles[index].name}`);
+        },
+        async getApiKey() {
+            if (state.apiKey) return state.apiKey;
+            // Simplified API key prompt
+            const key = prompt("Please enter your Gemini API Key:");
+            if (key) {
+                state.apiKey = key;
+                showMessage("API Key accepted. Saving to session.");
+                this.saveSession();
+                return key;
+            }
+            showMessage("API Key not provided. AI features are disabled.");
+            return null;
+        },
+        saveSession() {
+            if (state.loadedFiles.length === 0) return;
+            const sessionData = {
+                loadedFiles: state.loadedFiles,
+                currentIndex: state.currentIndex,
+                apiKey: state.apiKey,
+                geminiChatHistory: state.geminiChatHistory
             };
-            const mdFileObjects = await processDirectory(dirHandle);
-            addFilesAndDisplay(mdFileObjects);
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+            showMessage("Session saved successfully!");
+        },
+        async callLlmApi(chatHistory, systemPrompt = null) {
+            const apiKey = await this.getApiKey();
+            if (!apiKey) return "Error: API Key not provided.";
 
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                showMessage("Folder Scan Error. See console.", "error");
-                console.error("Folder Scan Error:", error);
+            toggleLoader(true);
+            try {
+                const body = { contents: chatHistory };
+                if (systemPrompt) {
+                    body.systemInstruction = { role: "system", parts: [{ text: systemPrompt }] };
+                }
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error.message || `HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error("Invalid response from AI.");
+                return text;
+
+            } catch (error) {
+                showMessage(`AI Error: ${error.message}`);
+                return `Error: ${error.message}`;
+            } finally {
+                toggleLoader(false);
             }
-        } finally {
-            toggleLoader(false);
-        }
-    };
+        },
+        // --- AI Feature Methods ---
+        async summarize() {
+            const file = state.loadedFiles[state.currentIndex];
+            if (!file) return;
+            const prompt = `Please provide a concise summary of the following document named "${file.name}":\n\n---\n\n${file.content}`;
+            const summary = await this.callLlmApi([{ role: 'user', parts: [{ text: prompt }] }]);
+            UI.appendAiOutput("Summary", summary);
+        },
+        async study() {
+            const file = state.loadedFiles[state.currentIndex];
+            if (!file) return;
+            const prompt = `Based on the document "${file.name}", what are some insightful questions a user might ask?\n\n---\n\n${file.content}`;
+            const questions = await this.callLlmApi([{ role: 'user', parts: [{ text: prompt }] }]);
+            UI.appendAiOutput("Suggested Questions", questions);
+        },
+        async autoLink() {
+            const allContent = state.loadedFiles.map(f => `--- DOCUMENT: ${f.name} ---\n${f.content}`).join('\n\n');
+            const conceptsPrompt = `From the following text, extract a list of up to 15 key concepts. Return ONLY a comma-separated list.\n\nTEXT:\n${allContent}`;
+            const conceptsResult = await this.callLlmApi([{role: 'user', parts: [{text: conceptsPrompt}]}]);
+            if (conceptsResult.startsWith("Error:")) { UI.appendAiOutput("Auto-Link Error", conceptsResult); return; }
 
-    // --- AI Functions ---
-    const callGeminiApi = async (chatHistory) => {
-        if (!state.apiKey && !(await getApiKey())) return "Error: API Key not provided.";
-        toggleLoader(true);
-        try {
-            const response = await fetch(getApiUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: chatHistory })
+            const keyConcepts = conceptsResult.split(',').map(c => c.trim()).filter(Boolean);
+            const summaryPrompt = `Write a concise, one-paragraph summary of the document set below, naturally incorporating these key concepts: ${keyConcepts.join(', ')}.\n\nDOCUMENTS:\n${allContent}`;
+            const summaryResult = await this.callLlmApi([{ role: 'user', parts: [{ text: summaryPrompt }] }]);
+            if (summaryResult.startsWith("Error:")) { UI.appendAiOutput("Auto-Link Error", summaryResult); return; }
+
+            let linkedSummary = summaryResult;
+            keyConcepts.forEach(concept => {
+                const regex = new RegExp(`\\b(${concept})\\b`, 'gi');
+                linkedSummary = linkedSummary.replace(regex, '<b>$1</b>'); // Simple bolding instead of custom syntax
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const result = await response.json();
-            return result.candidates?.[0]?.content?.parts?.[0]?.text || "Error: Invalid response from AI.";
-        } catch (error) {
-            showMessage("Failed to connect to AI service. Check console.", "error");
-            return `Error: ${error.message}`;
-        } finally {
-            toggleLoader(false);
+            UI.appendAiOutput("Auto-Linked Summary", linkedSummary);
         }
     };
 
-    const appendAiOutput = (title, content) => {
-        const container = document.createElement('div');
-        container.innerHTML = `<hr><h3>${title}</h3>`;
-        const contentBody = document.createElement('div');
-        if (title.startsWith("Suggested Questions")) {
-            content.split('\n').filter(line => line.trim().endsWith('?')).forEach(q => {
-                const btn = document.createElement('button');
-                btn.textContent = q.replace(/^[0-9*.-]+\s*/, '').trim();
-                btn.className = 'question-button';
-                btn.onclick = () => handleQuestionClick(btn.textContent);
-                contentBody.appendChild(btn);
+    // --- UI Building and Management ---
+    const UI = {
+        buildFilePrompt() {
+            const container = document.getElementById('app-container');
+            container.innerHTML = ''; // Clear previous UI
+            const promptPanel = this._createEl('div', { id: 'chidi-console-panel' });
+            const label = this._createEl('label', { textContent: 'Select .md, .txt, .js, or .sh files to begin', className: 'chidi-btn primary-action' });
+            label.setAttribute('for', 'mdFileInput');
+            promptPanel.append(this._createEl('h1', { id: 'chidi-mainTitle', textContent: 'chidi.md' }), label);
+            container.append(promptPanel);
+        },
+        buildMainApp() {
+            const container = document.getElementById('app-container');
+            container.innerHTML = ''; // Clear previous UI
+
+            const header = this._createEl('header', { className: 'chidi-console-header' }, [
+                this._createEl('h1', { id: 'chidi-mainTitle' }),
+                this._createEl('div', { id: 'chidi-loader', className: 'loader hidden' })
+            ]);
+
+            const display = this._createEl('main', { id: 'chidi-markdownDisplay' });
+
+            const controls = this._createEl('div', { className: 'controls-container' }, [
+                this._createEl('div', { className: 'control-group' }, [
+                    this._createEl('button', { id: 'prevBtn', className: 'chidi-btn', textContent: '<' }),
+                    this._createEl('select', { id: 'fileSelector', className: 'chidi-btn' }),
+                    this._createEl('button', { id: 'nextBtn', className: 'chidi-btn', textContent: '>' })
+                ]),
+                this._createEl('div', { className: 'control-group' }, [
+                    this._createEl('button', { id: 'summarizeBtn', className: 'chidi-btn secondary-action', textContent: 'Summarize' }),
+                    this._createEl('button', { id: 'studyBtn', className: 'chidi-btn secondary-action', textContent: 'Study' }),
+                    this._createEl('button', { id: 'autoLinkBtn', className: 'chidi-btn secondary-action', textContent: 'Auto-Link' }),
+                    this._createEl('button', { id: 'chatBtn', className: 'chidi-btn secondary-action', textContent: 'Chat' })
+                ])
+            ]);
+
+            const footer = this._createEl('footer', { className: 'chidi-status-readout' }, [
+                this._createEl('div', { id: 'fileCountDisplay', className: 'chidi-status-item' }),
+                this._createEl('div', { id: 'messageBox', className: 'chidi-status-message' }),
+                this._createEl('div', { className: 'control-group' }, [
+                    this._createEl('button', { id: 'saveSessionBtn', className: 'chidi-btn', textContent: 'Save' }),
+                    this._createEl('label', { textContent: 'Add Files', className: 'chidi-btn primary-action', for: 'mdFileInput' })
+                ])
+            ]);
+
+            const consolePanel = this._createEl('div', { id: 'chidi-console-panel' }, [header, display, controls, footer]);
+            container.appendChild(consolePanel);
+
+            this._cacheElements();
+            this._setupEventListeners();
+        },
+        _cacheElements() {
+            const get = (id) => document.getElementById(id);
+            elements = {
+                mainTitle: get('chidi-mainTitle'),
+                loader: get('chidi-loader'),
+                markdownDisplay: get('chidi-markdownDisplay'),
+                prevBtn: get('prevBtn'),
+                nextBtn: get('nextBtn'),
+                fileSelector: get('fileSelector'),
+                summarizeBtn: get('summarizeBtn'),
+                studyBtn: get('studyBtn'),
+                autoLinkBtn: get('autoLinkBtn'),
+                chatBtn: get('chatBtn'),
+                fileCountDisplay: get('fileCountDisplay'),
+                messageBox: get('messageBox'),
+                saveSessionBtn: get('saveSessionBtn'),
+                mdFileInput: get('mdFileInput'),
+                // Chat UI elements will be cached when built
+            };
+        },
+        _setupEventListeners() {
+            elements.mdFileInput.addEventListener('change', async (event) => {
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+                const fileObjects = await Promise.all(files.map(async file => ({
+                    name: file.name,
+                    content: await file.text()
+                })));
+                App.addFiles(fileObjects);
+                event.target.value = ''; // Reset file input
             });
-        } else {
-            contentBody.innerHTML = convertMarkdownToHtml(content);
+            elements.fileSelector.addEventListener('change', (e) => App.selectFile(parseInt(e.target.value)));
+            elements.prevBtn.addEventListener('click', () => App.selectFile(state.currentIndex > 0 ? state.currentIndex - 1 : state.loadedFiles.length - 1));
+            elements.nextBtn.addEventListener('click', () => App.selectFile(state.currentIndex < state.loadedFiles.length - 1 ? state.currentIndex + 1 : 0));
+            elements.saveSessionBtn.addEventListener('click', () => App.saveSession());
+            elements.summarizeBtn.addEventListener('click', () => App.summarize());
+            elements.studyBtn.addEventListener('click', () => App.study());
+            elements.autoLinkBtn.addEventListener('click', () => App.autoLink());
+            elements.chatBtn.addEventListener('click', () => Chat.enter());
+        },
+        update() {
+            if (!elements.mainTitle) return; // UI not built yet
+
+            const hasFiles = state.loadedFiles.length > 0;
+            const currentFile = hasFiles ? state.loadedFiles[state.currentIndex] : null;
+
+            // Update Header
+            elements.mainTitle.textContent = currentFile ? currentFile.name.replace(/\.(md|txt|js|sh)$/i, '') : "chidi.md";
+
+            // Update Display
+            if (currentFile) {
+                if (currentFile.isCode) {
+                    elements.markdownDisplay.innerHTML = `<pre>${currentFile.content || ''}</pre>`;
+                } else {
+                    elements.markdownDisplay.innerHTML = DOMPurify.sanitize(marked.parse(currentFile.content || ''));
+                }
+            } else {
+                elements.markdownDisplay.innerHTML = '<p>No file selected.</p>';
+            }
+
+            // Update Controls
+            elements.fileSelector.innerHTML = '';
+            state.loadedFiles.forEach((file, index) => {
+                const option = this._createEl('option', { value: index, textContent: file.name });
+                if (index === state.currentIndex) option.selected = true;
+                elements.fileSelector.appendChild(option);
+            });
+
+            [elements.summarizeBtn, elements.studyBtn, elements.autoLinkBtn, elements.chatBtn, elements.prevBtn, elements.nextBtn, elements.fileSelector].forEach(btn => btn.disabled = !hasFiles);
+            elements.saveSessionBtn.disabled = !hasFiles;
+
+            // Update Footer
+            elements.fileCountDisplay.textContent = `Files: ${state.loadedFiles.length}`;
+        },
+        appendAiOutput(title, content) {
+            if (!elements.markdownDisplay) return;
+            const outputBlock = this._createEl('div', { className: 'chidi-ai-output' });
+            outputBlock.innerHTML = DOMPurify.sanitize(marked.parse(`### ${title}\n\n${content}`));
+            elements.markdownDisplay.appendChild(outputBlock);
+            outputBlock.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            showMessage(`AI Response received for "${title}".`);
+        },
+        _createEl(tag, props = {}, children = []) {
+            const el = document.createElement(tag);
+            Object.entries(props).forEach(([key, value]) => {
+                if (key === 'textContent') el.textContent = value;
+                else el.setAttribute(key, value);
+            });
+            if (children.length > 0) el.append(...children);
+            return el;
         }
-        container.appendChild(contentBody);
-        elements.markdownDisplay.appendChild(container);
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
-    
-    const handleQuestionClick = async (question) => {
-        const questionButtons = document.querySelectorAll('.question-button');
-        
-        try {
-            // Disable all question buttons to prevent multiple clicks
-            questionButtons.forEach(btn => btn.disabled = true);
-            
-            showMessage("Getting answer...", "info");
-            state.geminiChatHistory.push({ role: "user", parts: [{ text: question }] });
-            const answer = await callGeminiApi(state.geminiChatHistory);
-            state.geminiChatHistory.push({ role: "model", parts: [{ text: answer }] });
-            appendAiOutput(`Answer to: "${question}"`, answer);
-            showMessage("Answer generated!", "success");
-        } finally {
-            // Re-enable all question buttons once the process is complete (success or fail)
-            questionButtons.forEach(btn => btn.disabled = false);
-        }
-    };
 
-    // --- Event Listeners ---
-    elements.mdFileInput.addEventListener('change', async (event) => {
-        const files = Array.from(event.target.files).filter(f => f.name.endsWith('.md'));
-        if (files.length === 0) return;
-        
-        const fileObjects = [];
-        for(const file of files) {
-            const content = await file.text();
-            fileObjects.push({ name: file.name, content });
-        }
-        addFilesAndDisplay(fileObjects);
-        
-        event.target.value = ''; // Reset file input
-    });
+    // --- Gemini Chat Logic ---
+    const Chat = {
+        enter() {
+            if (state.isChatActive) return;
+            state.isChatActive = true;
+            this.buildUI();
+        },
+        exit() {
+            if (!state.isChatActive) return;
+            state.isChatActive = false;
+            document.getElementById('gemini-chat-container').remove();
+        },
+        async sendMessage(userInput) {
+            if (!userInput.trim()) return;
 
-    elements.prevBtn.addEventListener('click', () => {
-        if (state.historyIndex > 0) {
-            state.historyIndex--;
-            displayFile(state.history[state.historyIndex]);
-        }
-    });
+            this.appendMessage(userInput, 'user');
+            elements.chatLoader.classList.remove('hidden');
 
-    elements.nextBtn.addEventListener('click', () => {
-        if (state.historyIndex < state.history.length - 1) {
-            state.historyIndex++;
-            displayFile(state.history[state.historyIndex]);
-        } else {
-            pickAndDisplayRandomFile();
-        }
-    });
-    
-    elements.summarizeBtn.addEventListener('click', async () => {
-        const chat = [...state.geminiChatHistory, { role: "user", parts: [{ text: "Summarize the current article concisely." }] }];
-        const summary = await callGeminiApi(chat);
-        appendAiOutput("Article Summary", summary);
-    });
-    
-    elements.suggestQuestionsBtn.addEventListener('click', async () => {
-        const prompt = "Directly provide a list of 3-4 thought-provoking questions based on the article. Each question must end with a question mark.";
-        const chat = [...state.geminiChatHistory, { role: "user", parts: [{ text: prompt }] }];
-        const questions = await callGeminiApi(chat);
-        appendAiOutput("Suggested Questions", questions);
-    });
+            const allFilesContext = state.loadedFiles.map(f => `--- DOCUMENT: ${f.name} ---\n${f.content}`).join('\n\n');
+            const systemPrompt = `You are a helpful AI assistant. You are in a chat session within the Chidi.md application. The user has loaded the following documents. Use them as context to answer questions. If the question is general, you don't need to reference them.\n\n${allFilesContext}`;
 
-    elements.askAllFilesBtn.addEventListener('click', async () => {
-        const userQuestion = await showInputModal({
-            title: "Ask All Files",
-            prompt: "What question would you like to ask across all loaded documents?",
-            placeholder: "e.g., 'Summarize the main points from all documents'",
-            confirmText: "Ask"
-        });
-        if (!userQuestion || userQuestion.trim() === '') return;
-        let combinedContent = "You have access to the following documents:\n\n";
-        state.loadedFiles.forEach(file => { combinedContent += `--- DOCUMENT: ${file.name} ---\n${file.content}\n\n`; });
-        const prompt = `${combinedContent}Based on all the documents provided, please answer the following question: ${userQuestion}`;
-        const answer = await callGeminiApi([{ role: 'user', parts: [{ text: prompt }] }]);
-        appendAiOutput(`Answer based on all files`, answer);
-    });
-    
-    elements.scanFolderBtn.addEventListener('click', handleDirectoryScan);
-    elements.saveSessionBtn.addEventListener('click', saveSession);
-    if (elements.restartSessionBtn) {
-        elements.restartSessionBtn.addEventListener('click', restartSession);
+            state.geminiChatHistory.push({ role: 'user', parts: [{ text: userInput }] });
+
+            const response = await App.callLlmApi(state.geminiChatHistory, systemPrompt);
+
+            elements.chatLoader.classList.add('hidden');
+            if (response && !response.startsWith("Error:")) {
+                state.geminiChatHistory.push({ role: 'model', parts: [{ text: response }] });
+                this.appendMessage(response, 'ai');
+            } else {
+                this.appendMessage(response || "An unknown error occurred.", 'ai');
+                state.geminiChatHistory.pop(); // Remove user message on failure
+            }
+        },
+        buildUI() {
+            const exitBtn = UI._createEl('button', { className: 'chidi-btn exit-btn', textContent: 'Exit Chat' });
+            const header = UI._createEl('header', { className: 'gemini-chat-header' }, [UI._createEl('h2', { textContent: 'Gemini Chat' }), exitBtn]);
+            elements.chatMessages = UI._createEl('div', { className: 'gemini-chat-messages' });
+            elements.chatLoader = UI._createEl('div', { className: 'loader hidden' });
+            elements.chatInput = UI._createEl('input', { className: 'gemini-chat-input', placeholder: 'Ask about the loaded files...' });
+            const sendBtn = UI._createEl('button', { className: 'chidi-btn primary-action', textContent: 'Send' });
+            const form = UI._createEl('form', { className: 'gemini-chat-form' }, [elements.chatInput, sendBtn]);
+            const modal = UI._createEl('div', { className: 'gemini-chat-modal' }, [header, elements.chatMessages, elements.chatLoader, form]);
+            const container = UI._createEl('div', { id: 'gemini-chat-container' }, [modal]);
+
+            exitBtn.addEventListener('click', () => this.exit());
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.sendMessage(elements.chatInput.value);
+                elements.chatInput.value = '';
+            });
+
+            document.body.appendChild(container);
+            elements.chatInput.focus();
+
+            // Render existing history
+            state.geminiChatHistory.forEach(msg => this.appendMessage(msg.parts[0].text, msg.role === 'user' ? 'user' : 'ai'));
+        },
+        appendMessage(message, sender) {
+            const messageDiv = UI._createEl('div', { className: `gemini-chat-message ${sender}` });
+            messageDiv.innerHTML = DOMPurify.sanitize(marked.parse(message));
+            elements.chatMessages.appendChild(messageDiv);
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
     }
-    
-    // --- Initial Setup ---
-    const initialize = () => {
-        elements.mainTitle.textContent = defaultTitle;
-        restoreSession();
-        updateUI();
-    };
 
-    initialize();
+    // --- Start the application ---
+    App.init();
 });
