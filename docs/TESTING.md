@@ -47,7 +47,7 @@ cd tests/e2e && npm ci && npm test
 - Stubs the model server at `http://localhost:11434` (both APIs; models `stub-chat`, `other-chat`, and `stub-embed`,
   which cannot chat); set `net.modelReply` in a test to change the reply. Other localhost ports refuse connections.
 - Any request to another host fails the test (the `net` fixture). Google Fonts are aborted silently.
-- A pass ends with `32 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
+- A pass ends with `34 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
 - Writes `test-results/` on failure (gitignored).
 
 ### CI

@@ -15,6 +15,7 @@ changes land.
   Choose it with the new **Model** button. API keys are gone, and a key saved by an older version is deleted.
 
 ### Fixed
+- Saving a session too big for browser storage now explains why it failed, and your previous save is kept.
 - An AI answer that arrives after you switch files is no longer shown under the wrong file; the status line says
   it was dropped.
 - The Model list now opens and lets you pick any model. Models that cannot chat, such as embedding models, are

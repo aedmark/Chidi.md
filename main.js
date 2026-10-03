@@ -273,7 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
             chatHistory: state.chatHistory,
             modelSettings: state.modelSettings
         };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+        const json = JSON.stringify(sessionData);
+        try {
+            localStorage.setItem(SESSION_STORAGE_KEY, json);
+        } catch (error) {
+            // Browsers cap localStorage at about 5 MB per site, and file contents are saved in full (D-003).
+            // A failed write leaves the previous save untouched.
+            const isQuota = error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+            const sizeMb = (json.length / 1e6).toFixed(1);
+            showMessage(isQuota
+                ? `Not saved: this session is about ${sizeMb} MB and browser storage holds about 5 MB. Remove some files (Restart, then add fewer) and save again. Your previous save, if any, is unchanged.`
+                : `Not saved: the browser refused to store the session (${error.name}). Your previous save, if any, is unchanged.`, "error");
+            return;
+        }
         showMessage("Session saved successfully!", "success");
         const originalText = elements.saveSessionBtn.textContent;
         elements.saveSessionBtn.textContent = 'Saved!';

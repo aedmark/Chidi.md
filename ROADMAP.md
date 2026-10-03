@@ -48,7 +48,9 @@ Goal: reading and chatting feel reliable.
   ignored. Evidence: two browser tests (conversation history sent, Enter and button, focus kept; second question
   blocked while waiting), both fail on the old code and the blocking one fails without the guard; answered by
   `llama3.1:8b` on a real Ollama (2026-10-03).
-- [ ] P2-02 Show a clear message when `localStorage` is full instead of failing silently on Save.
+- [x] P2-02 A Save that exceeds browser storage now says so, with the session's size, and leaves the previous save
+  intact (before: an uncaught exception and no message). Evidence: browser test saving ~6 MB of files in Chromium
+  and Firefox; fails on the old code (2026-10-03).
 - [ ] P2-03 Warn before "Ask All" when the combined files are likely to exceed the model's context.
 - [x] P2-04 Model picker: the Model field is now a `<select>` filled from the server when the dialog opens, when the
   type or URL changes, and on Refresh List. Models that cannot chat (Ollama `/api/show` capabilities; `embed` in the
@@ -62,6 +64,11 @@ Goal: reading and chatting feel reliable.
   suggested question's answer is kept in its own file's conversation, not the new one's. Found while doing P2-01.
   Evidence: four browser tests fail on the old code; the history test fails if the answer goes to the current
   conversation (2026-10-03).
+- [ ] P2-06 The saved chat history repeats the current file's full text (its first message), so a session takes about
+  twice its files' size. Found in P2-02 testing: 6 MB of files made a 12 MB session (2026-10-03). Changing what is
+  saved needs the maintainer's approval (AGENTS "Protected areas").
+- [ ] P2-07 A corrupted `chidiMdSession` value makes `JSON.parse` throw during start-up, so the app does not load until
+  site data is cleared. Found by reading `restoreSession()` during P2-02 (2026-10-03).
 
 ## Phase 3: Output / sharing
 

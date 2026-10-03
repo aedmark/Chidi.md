@@ -93,7 +93,8 @@ Note the origin: a session saved on `http://localhost:8000` is not visible on `:
 | No model configured | Model dialog opens; cancelling appends "Error: No local model configured." | status line | Choose a model |
 | Server down or CORS refused | `Error: Failed to fetch` appended | console | Start the server; for Ollama set `OLLAMA_ORIGINS` |
 | Server HTTP error or empty reply | `Error: HTTP error! status: N` appended | console | Retry |
-| `localStorage` quota exceeded on Save | Uncaught exception; no confirmation (P2-02) | console | Load fewer files |
+| `localStorage` quota exceeded on Save | Status line says the session's size and that the previous save is kept (P2-02) | status line | Restart and load fewer files |
+| Corrupted saved session | App does not start (P2-07) | console | Clear site data |
 | `file://` or non-Chromium | Scan Folder shows an alert | alert | Serve from localhost in Chrome/Edge |
 
 Only status strings are logged; never log file contents. See [SECURITY.md](SECURITY.md).

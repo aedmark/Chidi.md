@@ -12,7 +12,7 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 9, on `main`: serve.py no-cache and P2-05 merged._
+_Last updated: 2026-10-03, session 10, on `main`: P2-02 storage-full message merged._
 
 **Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
 pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. P4-01 adds an offline
@@ -26,7 +26,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
-| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **32/32**; each of 4 fixes removed fails its test; P2-04 test fails on the old picker |
+| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **34/34**; each of 4 fixes removed fails its test; P2-04 test fails on the old picker |
 | GitHub Actions `checks` | green on the P4-02 branch; a broken element ID failed both jobs |
 | Hostile Markdown (TESTING.md), session 4 | with fix: payload stripped, nothing ran; fix removed: `onerror` ran (test can fail) |
 | Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
@@ -48,7 +48,8 @@ Ollama on port 11434 with `llama3.1:8b`)
 
 ## Next steps (in order)
 
-1. P2-02 (storage full), then P2-03 (Ask All context warning).
+1. P2-07 (corrupted session blocks start-up), then P2-03 (Ask All context warning).
+   P2-06 needs the maintainer's OK to change what is saved.
 2. P4-03: keyboard and focus handling.
 3. P6-02: tag `v0.2.0` now that Phase 1 is done (D-005).
 
@@ -59,6 +60,20 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 10: 2026-10-03: storage full
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P2-02.
+**Done:** P2-02; filed P2-06 and P2-07.
+**Changed:** `saveSession()` catches a failed write and explains it; one browser test.
+**Decisions:** none.
+**Verified:** 34/34 browser smoke and branch CI; the new test fails on the old code (uncaught exception, no message).
+**Not verified:** Safari's quota behaviour.
+**Problems / surprises:** sessions are twice their files' size because chat history repeats the file text (P2-06).
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P2-07.
 
 ### Session 9: 2026-10-03: no-cache server, late answers
 

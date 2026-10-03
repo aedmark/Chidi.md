@@ -350,3 +350,20 @@ test('drops an Ask All answer after a restart (P2-05)', async ({ page, net }) =>
     await expect(page.locator('#markdownDisplay h3')).toHaveCount(0);
     expect(net.modelRequests.length).toBeGreaterThan(0);
 });
+
+test('explains when a session is too big to save, keeping the previous save (P2-02)', async ({ page }) => {
+    await page.goto('/');
+    await addFiles(page, [TEA]);
+    await page.locator('#saveSessionBtn').click();
+    await expect(page.locator('#messageBox')).toContainText('saved successfully');
+
+    // About 6 MB of text: more than any major browser allows one site in localStorage.
+    await addFiles(page, [md('huge.md', '# Huge\n\n' + 'x'.repeat(6_000_000))]);
+    await page.locator('#saveSessionBtn').click();
+    await expect(page.locator('#messageBox')).toContainText(/Not saved: this session is about \d+\.\d MB and browser storage holds about 5 MB/);
+    await expect(page.locator('#saveSessionBtn')).toHaveText('Save');
+    await expect(page.locator('#saveSessionBtn')).toBeEnabled();
+
+    const saved = JSON.parse(await page.evaluate(() => localStorage.getItem('chidiMdSession')));
+    expect(saved.loadedFiles.map((f) => f.name)).toEqual(['tea.md']);
+});
