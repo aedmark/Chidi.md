@@ -24,6 +24,12 @@
             <p class="placeholder-text">Awaiting file selection to initialize display screen...</p>
         </main>
 
+        <form id="askForm" class="ask-form">
+            <label for="askInput" class="visually-hidden">Ask about this file</label>
+            <input type="text" id="askInput" class="ask-input" placeholder="Ask about this file..." autocomplete="off" disabled>
+            <button type="submit" id="askBtn" disabled>Ask</button>
+        </form>
+
         <div class="controls-container">
             <div class="control-group">
                 <button id="prevBtn" disabled>&larr; PREV</button>
