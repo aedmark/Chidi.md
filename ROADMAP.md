@@ -43,7 +43,11 @@ during P0-01 (2026-10-03).
 
 Goal: reading and chatting feel reliable.
 
-- [ ] P2-01 Free-text follow-up questions on the current file (today only suggested-question buttons exist).
+- [x] P2-01 Free-text follow-up questions: an "Ask about this file" box under the file. Typed and suggested questions
+  share the file's conversation; one question at a time (box and buttons disabled while waiting); empty questions
+  ignored. Evidence: two browser tests (conversation history sent, Enter and button, focus kept; second question
+  blocked while waiting), both fail on the old code and the blocking one fails without the guard; answered by
+  `llama3.1:8b` on a real Ollama (2026-10-03).
 - [ ] P2-02 Show a clear message when `localStorage` is full instead of failing silently on Save.
 - [ ] P2-03 Warn before "Ask All" when the combined files are likely to exceed the model's context.
 - [x] P2-04 Model picker: the Model field is now a `<select>` filled from the server when the dialog opens, when the
@@ -53,6 +57,8 @@ Goal: reading and chatting feel reliable.
   entries matching the text already in the field). Evidence: new browser test, both APIs, Chromium and Firefox,
   fails on the old code; against a real Ollama, 8 chat models listed, `nomic-embed-text` disabled, keyboard pick of
   a second model works (2026-10-03). Not seen: the native dropdown popup itself (not in screenshots).
+- [ ] P2-05 An answer that arrives after switching files is appended under the new file, and the question went into
+  the old file's conversation. Found while doing P2-01 (2026-10-03); affects suggested questions, Summarize and Ask All.
 
 ## Phase 3: Output / sharing
 

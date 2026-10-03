@@ -12,7 +12,7 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 7, on `main`: P2-04 model picker merged._
+_Last updated: 2026-10-03, session 8, on `main`: P2-01 free-text questions merged._
 
 **Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
 pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. P4-01 adds an offline
@@ -26,7 +26,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
-| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **20/20**; each of 4 fixes removed fails its test; P2-04 test fails on the old picker |
+| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **24/24**; each of 4 fixes removed fails its test; P2-04 test fails on the old picker |
 | GitHub Actions `checks` | green on the P4-02 branch; a broken element ID failed both jobs |
 | Hostile Markdown (TESTING.md), session 4 | with fix: payload stripped, nothing ran; fix removed: `onerror` ran (test can fail) |
 | Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
@@ -35,7 +35,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 **What works**
 - **Reading** (`main.js` file loading and display). Add files or scan a folder; PREV/NEXT; duplicates skipped.
 - **Safe rendering** (D-006). Raw HTML in files and replies is sanitised.
-- **Local AI** (D-007, P1-06, P2-04). Model dialog with a model list from the server, Summarize, Suggest, follow-ups, Ask All.
+- **Local AI** (D-007, P1-06, P2-04). Model dialog with a model list from the server, Summarize, Suggest, typed and suggested follow-ups, Ask All.
 - **Sessions** (D-003). Save, restore on load, restart; model settings included.
 
 **Not verified**
@@ -44,10 +44,11 @@ Ollama on port 11434 with `llama3.1:8b`)
 **Gotchas for the next session**
 - Agents merge and push their own branches after branch CI is green (D-009).
 - Large local models can take a minute per reply; wait for the loader rather than retrying.
+- `python3 -m http.server` responses get cached; hard-refresh after changing CSS or JS.
 
 ## Next steps (in order)
 
-1. P2-01 (free-text follow-ups).
+1. P2-05 (answers landing under the wrong file), then P2-02 (storage full).
 2. P4-03: keyboard and focus handling.
 3. P6-02: tag `v0.2.0` now that Phase 1 is done (D-005).
 
@@ -58,6 +59,23 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 8: 2026-10-03: free-text questions
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P2-01.
+**Done:** P2-01; filed P2-05.
+**Changed:** `index.html` adds the ask form; `style.css` styles it; `main.js` adds `askAboutCurrentFile()` shared with
+suggested questions and a `state.isAsking` guard (not saved); two browser tests.
+**Decisions:** none.
+**Verified:** 24/24 browser smoke and branch CI; new tests fail on the old code, and the blocking test fails without
+the guard; real Ollama answered a typed question, box disabled while waiting.
+**Not verified:** Firefox by hand (covered by the suite only).
+**Problems / surprises:** the in-app browser kept an old `style.css` until reloaded (pitfall added to TESTING). A doc
+script failed mid-chain and the code merged before its docs; docs followed in a docs-only commit.
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P2-05.
 
 ### Session 7: 2026-10-03: model picker
 

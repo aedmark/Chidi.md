@@ -29,7 +29,7 @@ All in `main.js`, in this order:
 | UI state | `updateUI()` | button enabled/disabled states |
 | File loading | `addFilesAndDisplay()`, `handleDirectoryScan()` | file input, `showDirectoryPicker` |
 | Display and history | `displayFile()`, `pickAndDisplayRandomFile()` | `state.history`, `state.chatHistory` |
-| AI | `callModel()`, `appendAiOutput()`, `handleQuestionClick()` | model server |
+| AI | `callModel()`, `appendAiOutput()`, `askAboutCurrentFile()` (typed and suggested questions) | model server |
 | Wiring | event listeners, `initialize()` | DOM |
 
 ## Interfaces and data flow
@@ -100,6 +100,5 @@ Only status strings are logged; never log file contents. See [SECURITY.md](SECUR
 
 - `#restoreSessionModal` exists in `index.html` but nothing shows it: a saved session is restored on load without
   asking.
-- The README says "chat and memory": chat is limited to suggested-question buttons (P2-01), and "memory" is the
-  per-file chat history, reset whenever another file is displayed.
+- The README says "memory": it is the per-file chat history, reset whenever another file is displayed.
 - `saveSession()` reports `"success"` as a message type, but `showMessage` only distinguishes `error` and `warn`.

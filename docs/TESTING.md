@@ -47,7 +47,7 @@ cd tests/e2e && npm ci && npm test
 - Stubs the model server at `http://localhost:11434` (both APIs; models `stub-chat`, `other-chat`, and `stub-embed`,
   which cannot chat); set `net.modelReply` in a test to change the reply. Other localhost ports refuse connections.
 - Any request to another host fails the test (the `net` fixture). Google Fonts are aborted silently.
-- A pass ends with `20 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
+- A pass ends with `24 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
 - Writes `test-results/` on failure (gitignored).
 
 ### CI
@@ -66,7 +66,8 @@ about 3 minutes longer than a passing one, because each failed assertion waits o
 5. Save, reload the page, choose Restore: same files and current file.
 6. Model: the dialog lists models on open; embedding models show "(cannot chat)" and are disabled. Try
    `https://example.com` (refused), then `http://localhost:11434`, open the Model dropdown, pick a non-first model, Save.
-   Summarize, Suggest, click a suggested question, Ask All: each appends a section below the file. Repeat Suggest
+   Summarize, Suggest, click a suggested question, type a question and press Enter, Ask All: each appends a section
+   below the file. Repeat Suggest
    with OpenAI-compatible and `http://localhost:11434/v1`.
 7. Restart: everything clears, reload shows no restore prompt.
 
@@ -124,5 +125,7 @@ the fast set and report the browser and manual smoke as not run.
 ## Known pitfalls
 
 - **A saved session hides load bugs.** Restore brings files back without the load path running. Restart first.
+- **Stale CSS or JS after an update.** `http.server` lets the browser cache files; hard-refresh (Ctrl+Shift+R)
+  before judging a UI change.
 - **Different port, different storage.** Sessions are per origin; `:8000` and `:8080` do not share one.
 - **A mutation check must break the fix, not the test.** Remove just the fix.

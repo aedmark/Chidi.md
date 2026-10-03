@@ -7,6 +7,9 @@ changes land.
 
 <!-- Keep only headings that contain entries. -->
 
+### Added
+- Type your own questions about the current file in the new "Ask about this file" box.
+
 ### Changed
 - AI features now use a model server on your own machine (Ollama or OpenAI-compatible) instead of Google Gemini.
   Choose it with the new **Model** button. API keys are gone, and a key saved by an older version is deleted.
