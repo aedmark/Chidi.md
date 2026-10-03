@@ -44,7 +44,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 **Gotchas for the next session**
 - Agents merge and push their own branches after branch CI is green (D-009).
 - Large local models can take a minute per reply; wait for the loader rather than retrying.
-- `python3 -m http.server` responses get cached; hard-refresh after changing CSS or JS.
+- `python3 -m http.server` responses get cached; `tools/serve.py` does not (no-cache headers).
 
 ## Next steps (in order)
 

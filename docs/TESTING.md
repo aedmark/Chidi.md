@@ -125,7 +125,7 @@ the fast set and report the browser and manual smoke as not run.
 ## Known pitfalls
 
 - **A saved session hides load bugs.** Restore brings files back without the load path running. Restart first.
-- **Stale CSS or JS after an update.** `http.server` lets the browser cache files; hard-refresh (Ctrl+Shift+R)
-  before judging a UI change.
+- **Stale CSS or JS after an update.** `python3 -m http.server` lets the browser cache files; use
+  `tools/serve.py` (sends `Cache-Control: no-cache`) or hard-refresh (Ctrl+Shift+R) before judging a UI change.
 - **Different port, different storage.** Sessions are per origin; `:8000` and `:8080` do not share one.
 - **A mutation check must break the fix, not the test.** Remove just the fix.
