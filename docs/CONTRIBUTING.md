@@ -20,7 +20,7 @@ The workflow shared by human and automated contributors. Agent-specific instruct
 6. **Document** per [the update triggers](README.md#update-triggers): the roadmap item to `[x]` with evidence and
    date, a decision if one was made, the changelog if users will notice.
 7. **Hand off**: update [HANDOFF.md](HANDOFF.md) and add a session-log entry.
-8. **Submit** the branch for the maintainer to review and merge.
+8. **Merge** the branch to `main` with `--no-ff` and push (D-009). Docs-only changes may go straight to `main`.
 
 ## Verify
 
@@ -35,7 +35,7 @@ Report the exact checks run and any skipped; a partial pass is not a full pass.
 ## Submit and review
 
 Branches are `feature/<roadmap-id>-<topic>` or `fix/<topic>`. Commit subjects are imperative and start with the
-roadmap ID when one exists. The maintainer reviews and merges to `main` (D-004). A change is ready when its scope is
+roadmap ID when one exists. Agents and the maintainer merge their own branches to `main` once checks pass (D-009). A change is ready when its scope is
 clear, checks pass, migration impact is described, no key or personal data is present, and the docs it invalidated
 are updated.
 
