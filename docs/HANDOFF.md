@@ -12,11 +12,11 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 3, on `main`: P1-06 merged; Phase 1 complete._
+_Last updated: 2026-10-03, session 4, on `main`: hostile-Markdown test seen failing without the fix._
 
 **Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
-pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. The biggest gaps: no
-automated browser test (P4-01), and the hostile-Markdown test has not been seen failing without the fix.
+pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. The biggest gap: no
+automated browser test (P4-01).
 
 **Verified** (2026-10-03, on `main` after the P1-06 merge, Linux, Python 3, Chromium in the Claude desktop app,
 Ollama on port 11434 with `llama3.1:8b`)
@@ -25,7 +25,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
-| Hostile Markdown (TESTING.md), carried over from session 2 | img onerror, script, javascript: link all stripped |
+| Hostile Markdown (TESTING.md), session 4 | with fix: payload stripped, nothing ran; fix removed: `onerror` ran (test can fail) |
 | Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
 | Old session with `apiKey` | restored; key and Gemini chat removed from storage |
 
@@ -36,7 +36,6 @@ Ollama on port 11434 with `llama3.1:8b`)
 - **Sessions** (D-003). Save, restore on load, restart; model settings included.
 
 **Not verified**
-- Hostile Markdown with the fix removed (TESTING.md step 4; the maintainer can run it).
 - Ask All against a live model; a real llama.cpp or LM Studio server; Firefox; the full manual smoke.
 
 **Gotchas for the next session**
@@ -57,6 +56,21 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 4: 2026-10-03: hostile-Markdown mutation check
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** Run the hostile-Markdown test with the fix removed, now that the maintainer allowed it.
+**Done:** P1-01 evidence completed.
+**Changed:** docs only; `main.js` edited temporarily and restored with `git checkout`.
+**Decisions:** none.
+**Verified:** without DOMPurify the `onerror` payload set a localStorage flag and the `javascript:` href survived; with
+it, the flag stayed unset and both were stripped. Chromium in the Claude desktop app.
+**Not verified:** Firefox.
+**Problems / surprises:** none.
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P4-01.
 
 ### Session 3: 2026-10-03: local models only
 

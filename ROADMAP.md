@@ -24,7 +24,8 @@ during P0-01 (2026-10-03).
 - [x] P1-01 Sanitise rendered HTML (file content and model replies) with DOMPurify before `innerHTML` (D-006).
   `convertMarkdownToHtml` sanitises every render; `tests/check_structure.py` rejects any other `innerHTML` source.
   Evidence: a restored session with `<img onerror>`, `<script>` and a `javascript:` link renders with all three
-  stripped, Chromium via the in-app browser (2026-10-03). Not done: the run without the fix, to see it fail.
+  stripped, Chromium via the in-app browser (2026-10-03). With the fix removed, the `onerror` payload ran and the
+  `javascript:` link kept its `href`; restored, neither survived (2026-10-03, session 4).
 - [x] P1-02 Build the AI output heading with `textContent` (`appendAiOutput`). Evidence: the structure check flags
   the old template-string `innerHTML` and passes on the new code (2026-10-03). Not seen with a live model reply.
 - [-] P1-03 Send the Gemini key in a header instead of the URL (dropped, D-007: Gemini and API keys are removed).
