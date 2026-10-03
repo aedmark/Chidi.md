@@ -31,10 +31,12 @@ during P0-01 (2026-10-03).
 - [x] P1-04 Pin `marked` 18.0.14 (`lib/marked.umd.js`) and DOMPurify 3.4.16 with SRI sha384. Evidence: both load
   in Chromium with integrity checked; the structure check fails on an unpinned CDN script (2026-10-03)
 - [-] P1-05 Make saving the API key opt-in (dropped, D-007: no API keys).
-- [ ] P1-06 Replace Gemini with a local provider (D-007): a settings dialog for base URL, API style (Ollama or
-  OpenAI-compatible) and model; reject non-local URLs; remove all key handling and delete `apiKey` from restored
-  sessions. Done when Summarize works against a local Ollama and a llama.cpp server, and a saved session from the
-  previous version restores without its key.
+- [x] P1-06 Replace Gemini with a local provider (D-007): Model dialog for server type (Ollama or OpenAI-compatible),
+  URL and model, with List Models; non-local URLs refused when entered and when restored; key handling removed;
+  `apiKey` and `geminiChatHistory` deleted from old saved sessions. Evidence, Chromium + Ollama 11434 with
+  `llama3.1:8b`: Summarize on `/api/chat`; Suggest and a follow-up on `/v1/chat/completions`; save stores
+  `modelSettings` and `chatHistory` only; an old session with a key restores without it; a saved remote URL is
+  dropped on restore (2026-10-03). Not run: a real llama.cpp server (Ollama's `/v1` stood in for it).
 
 ## Phase 2: Core experience
 
@@ -43,6 +45,8 @@ Goal: reading and chatting feel reliable.
 - [ ] P2-01 Free-text follow-up questions on the current file (today only suggested-question buttons exist).
 - [ ] P2-02 Show a clear message when `localStorage` is full instead of failing silently on Save.
 - [ ] P2-03 Warn before "Ask All" when the combined files are likely to exceed the model's context.
+- [ ] P2-04 List Models picks the first model, which can be an embedding model (e.g. `nomic-embed-text`) that cannot
+  chat. Prefer a chat-capable model or leave the field empty. Found in P1-06 testing (2026-10-03).
 
 ## Phase 3: Output / sharing
 

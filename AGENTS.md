@@ -1,10 +1,10 @@
 # Chidi.md
 
 Chidi.md is a single-page, no-build browser app for reading a personal collection of Markdown files and talking
-about them with an LLM (currently Google Gemini). It loads `.md` files or whole folders, shows them one at a time in
+about them with a local LLM. It loads `.md` files or whole folders, shows them one at a time in
 a retro console UI, and can summarise, suggest questions, answer follow-ups, and answer one question across all
-loaded files. Everything runs in the browser: `index.html`, `main.js`, `style.css`, plus `marked` from a CDN. AI
-is moving from Gemini to local Ollama or OpenAI-compatible servers with no API keys (D-007, P1-06).
+loaded files. Everything runs in the browser: `index.html`, `main.js`, `style.css`, plus `marked` and DOMPurify
+from a CDN. AI runs on a local Ollama or OpenAI-compatible server the user picks; there are no API keys (D-007).
 
 This is the canonical instruction file for coding agents. `CLAUDE.md` imports it; do not duplicate these rules in
 tool-specific files. Project facts belong in the documents linked below, not in an agent's private memory.
@@ -74,15 +74,16 @@ Record durable preferences here so they survive agent and session changes.
 | Path or thing | Rule | Why |
 | --- | --- | --- |
 | `LICENSE` | Do not edit | Maintainer-owned legal text |
-| `chidiMdSession` localStorage key and its shape | Do not rename or restructure without a migration | Users' saved sessions would silently vanish (D-003) |
+| `chidiMdSession` localStorage key and its shape (`loadedFiles`, `history`, `historyIndex`, `chatHistory`, `modelSettings`) | Do not rename or restructure without a migration | Users' saved sessions would silently vanish (D-003) |
 
 ## Names and terms
 
 | Canonical term | Meaning | Formerly / not to be confused with |
 | --- | --- | --- |
 | Chidi.md | The product | "chidi.md" in the UI title; same thing |
-| Session | Loaded files, view history and chat history, saved to `localStorage` | A work session in `HANDOFF.md` |
-| History | The list of file indexes viewed, driving PREV/NEXT | Chat history (`geminiChatHistory`) |
+| Session | Loaded files, view history, chat history and model settings, saved to `localStorage` | A work session in `HANDOFF.md` |
+| History | The list of file indexes viewed, driving PREV/NEXT | Chat history (`chatHistory`) |
+| Model settings | `{apiStyle, baseUrl, model}` for the local server | An API key: there is none |
 | Ask All | One question over every loaded file | Follow-up questions, which use only the current file |
 
 ## Repository map

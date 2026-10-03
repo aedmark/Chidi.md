@@ -7,7 +7,9 @@ An LLM-enabled markdown analyzer with chat and memory.
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000> in Chrome or Edge. AI features need your own Gemini API key.
+Then open <http://localhost:8000> in Chrome or Edge. AI features need a local model server: [Ollama](https://ollama.com)
+(`http://localhost:11434`) or any OpenAI-compatible server (llama.cpp, LM Studio, vLLM). Click **Model** to choose
+it. Your files never leave your machine.
 
 ## Developing
 

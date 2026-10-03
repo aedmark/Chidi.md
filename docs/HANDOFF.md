@@ -12,37 +12,43 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 2, on `main`: DOMPurify and pinned CDN scripts merged; P1-06 starting._
+_Last updated: 2026-10-03, session 3, on `main`: P1-06 merged; Phase 1 complete._
 
-**Where things stand, in one paragraph:** The app works as released on 2025-07-17. Phase 0 (workflow) is done. All open
-questions are answered (D-004 to D-008). Rendering is sanitised (P1-01, P1-02, P1-04). The code still
-uses Gemini with a stored key until P1-06. There is no automated browser test yet.
+**Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
+pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. The biggest gaps: no
+automated browser test (P4-01), and the hostile-Markdown test has not been seen failing without the fix.
 
-**Verified** (2026-10-03, on the session-2 branch, Linux, Python 3, Chromium in the Claude desktop app)
+**Verified** (2026-10-03, on `main` after the P1-06 merge, Linux, Python 3, Chromium in the Claude desktop app,
+Ollama on port 11434 with `llama3.1:8b`)
 
 | Suite | Result |
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
-| Hostile Markdown (TESTING.md) | img onerror, script, javascript: link all stripped |
+| Hostile Markdown (TESTING.md), carried over from session 2 | img onerror, script, javascript: link all stripped |
+| Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
+| Old session with `apiKey` | restored; key and Gemini chat removed from storage |
 
-**What works** (from reading the code, not run this session)
+**What works**
+- **Reading** (`main.js` file loading and display). Add files or scan a folder; PREV/NEXT; duplicates skipped.
 - **Safe rendering** (D-006). Raw HTML in files and replies is sanitised.
-- **Reading** (`main.js` file loading and display). Add files or scan a folder; PREV/NEXT; duplicate files skipped.
-- **AI** (D-002, superseded by D-007; code not yet changed). Summarize, Suggest, follow-up on suggested questions, Ask All.
-- **Sessions** (D-003). Save, restore on load, restart.
+- **Local AI** (D-007, P1-06). Model dialog, List Models, Summarize, Suggest, follow-ups, Ask All.
+- **Sessions** (D-003). Save, restore on load, restart; model settings included.
 
 **Not verified**
-- The manual smoke has not been run; nothing has been run in Firefox.
-- Hostile-Markdown test not run without the fix (the temporary revert was blocked by the agent's permissions).
+- Hostile Markdown with the fix removed (TESTING.md step 4; the maintainer can run it).
+- Ask All against a live model; a real llama.cpp or LM Studio server; Firefox; the full manual smoke.
 
 **Gotchas for the next session**
 - Agents merge and push their own branches (D-009).
+- List Models fills in the first model, which on this machine is not a chat model in every case (P2-04).
+- Large local models can take a minute per reply; wait for the loader rather than retrying.
 
 ## Next steps (in order)
 
-1. P1-06: replace Gemini with a local Ollama / OpenAI-compatible provider.
-2. P4-01: Playwright smoke test with a stubbed model endpoint.
+1. P4-01: Playwright smoke test with a stubbed model endpoint (D-008).
+2. P2-04, then P2-01 (free-text follow-ups).
+3. P6-02: tag `v0.2.0` now that Phase 1 is done (D-005).
 
 ## Open questions for maintainers
 
@@ -51,6 +57,23 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 3: 2026-10-03: local models only
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P1-06, after merging session 2's branch.
+**Done:** P1-06; D-009 recorded (standing git permission).
+**Changed:** `main.js` drops Gemini and key handling, adds the Model dialog, `callModel()` for Ollama and
+OpenAI-compatible servers, local-URL checks, and old-session cleanup; `index.html` adds the Model button and dialog;
+`style.css` adds dialog label and error styles; README, ARCHITECTURE, SECURITY, TESTING, CHANGELOG updated.
+**Decisions:** D-009.
+**Verified:** see Current state; all against a real Ollama, both API styles.
+**Not verified:** Ask All live; llama.cpp; Firefox; hostile Markdown without the fix.
+**Problems / surprises:** List Models may preselect an embedding model (P2-04). `#restoreSessionModal` is never
+shown (ARCHITECTURE, "Claims vs. code").
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P4-01.
 
 ### Session 2: 2026-10-03: sanitise rendered HTML
 
@@ -65,7 +88,7 @@ pinning; `.claude/launch.json` serves the app on port 8000.
 **Not verified:** hostile Markdown without the fix; manual smoke; live AI replies; Firefox.
 **Problems / surprises:** `marked` 18 has no `marked.min.js`; the UMD build is `lib/marked.umd.js`.
 **Corrections:** none.
-**Left undone:** none; merged to `main` (D-009).
+**Left undone:** none; merged to `main` in session 3 (D-009).
 **Next session should start with:** P1-06.
 
 ### Session 1: 2026-10-03: adopt the agent workflow

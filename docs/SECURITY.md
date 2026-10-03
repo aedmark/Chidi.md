@@ -19,13 +19,12 @@ API keys or personal documents.
 
 | Asset or boundary | Sensitivity / threat | Protection and validation | Owner |
 | --- | --- | --- | --- |
-| Gemini API key (being removed) | Billing abuse if stolen | Stored in `localStorage` and sent in the URL today; removed entirely by P1-06 (D-007) | `main.js` |
-| User's Markdown files | Personal notes; may contain hostile HTML | Sanitised with DOMPurify (D-006); sent to Google today; only to a local server after P1-06 | `main.js` |
+| Model server URL | A remote URL would send the user's documents off the machine | `isLocalUrl()` on entry and on restore (D-007) | `main.js` |
+| User's Markdown files | Personal notes; may contain hostile HTML | Sanitised with DOMPurify (D-006); sent only to the local model server | `main.js` |
 | Model replies | Can contain HTML or prompt-injected content from a file | Sanitised with DOMPurify; titles set as text | `main.js` |
-| CDN scripts | A compromised CDN has full page access, including the key and documents | Exact versions with SRI; checked by `tests/check_structure.py` | `index.html` |
+| CDN scripts | A compromised CDN has full page access, including the user's documents | Exact versions with SRI; checked by `tests/check_structure.py` | `index.html` |
 
-Until P1-06 lands, any script injection means key theft. After it, injection can still read
-the user's documents and call the local model server, so DOMPurify stays required (D-006).
+Script injection could read the user's documents and send them anywhere, so DOMPurify and SRI stay required (D-006).
 Architecture details are in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Secure development rules
@@ -42,5 +41,5 @@ No automated security checks yet. Each P1 item carries its own "done when" test;
 
 ## Incident response
 
-If a key is exposed: revoke it in Google AI Studio, create a new one, and clear the saved session (Restart). If a
-committed file contains a key, tell the maintainer before any history rewrite.
+If a Gemini key was saved by a version before P1-06, restoring the session deletes it; revoke it in Google AI Studio
+anyway. If a committed file contains a secret, tell the maintainer before any history rewrite.

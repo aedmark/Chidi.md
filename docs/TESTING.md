@@ -9,7 +9,7 @@ Results live in HANDOFF's "Verified" table; this file is how to get them.
 | --- | --- | --- | --- | --- |
 | Structure | `tests/check_structure.py` | Every ID `main.js` looks up exists once in `index.html`; local assets exist; `innerHTML` only from sanitised renders; CDN scripts pinned with SRI | That anything runs | under a second, Python 3 |
 | Docs | `tools/check_docs.py` | Doc links, roadmap IDs, decisions and questions are consistent | That the docs are true | under a second, Python 3 |
-| Manual smoke | below | A person's path through the app works in one browser | Other browsers; AI answer quality | 5 minutes, Chromium, optional local model |
+| Manual smoke | below | A person's path through the app works in one browser | Other browsers; AI answer quality | 5 minutes, Chromium, optional local model (Ollama) |
 
 No automated browser test exists yet; P4-01 adds a Playwright suite (D-008).
 
@@ -18,11 +18,12 @@ No automated browser test exists yet; P4-01 adds a Playwright suite (D-008).
 
 ## Before any run
 
-- **Clean state:** use a fresh browser profile or click Restart. A saved session restores files, history and key, so
+- **Clean state:** use a fresh browser profile or click Restart. A saved session restores files, history and model, so
   a leftover session can make a broken load path look fine.
 - **Serve over HTTP:** `python3 -m http.server 8000` from the repo root. `file://` disables Scan Folder.
-- **Model:** until P1-06, AI steps need a throwaway Gemini key. After it, run Ollama locally (`OLLAMA_ORIGINS`
-  set to the page's origin). Without a model, test only the non-AI steps and say so.
+- **Model:** run Ollama (`ollama serve`; it allows `http://localhost:*` origins by default) with a small chat model
+  such as `llama3.1:8b`. Ollama's `/v1` stands in for an OpenAI-compatible server. Without a model, test only the
+  non-AI steps and say so.
 
 ## Running each suite
 
@@ -41,14 +42,28 @@ python3 tests/check_structure.py && python3 tools/check_docs.py
 3. NEXT shows a different file; PREV returns to the previous one.
 4. Scan Folder on a folder with nested `.md` files (Chrome/Edge only).
 5. Save, reload the page, choose Restore: same files and current file.
-6. With a key: Summarize, Suggest, click a suggested question, Ask All. Each appends a section below the file.
+6. Model: try `https://example.com` (refused), then `http://localhost:11434`, List Models, pick a chat model, Save.
+   Summarize, Suggest, click a suggested question, Ask All: each appends a section below the file. Repeat Suggest
+   with OpenAI-compatible and `http://localhost:11434/v1`.
 7. Restart: everything clears, reload shows no restore prompt.
 
 ### Hostile Markdown (after touching rendering)
 
-In the browser console, save a session whose one file contains `<img src=x onerror=alert(1)>`, a `<script>` and
-a `[x](javascript:alert(1))` link under the `chidiMdSession` key, reload, restore, and inspect `#markdownDisplay`:
-none of the three may survive. Restart afterwards.
+1. Serve the app and open `http://localhost:8000` in Chrome, then open devtools (F12) > Console.
+2. Paste this, press Enter, and the page reloads with one hostile file:
+
+   ```js
+   localStorage.setItem('chidiMdSession', JSON.stringify({loadedFiles: [{name: 'evil.md', content:
+     '# Evil\n\n<img src=x onerror="alert(\'img\')"> <script>alert(\'script\')</script> [click](javascript:alert(\'link\'))'}],
+     history: [0], historyIndex: 0})); location.reload();
+   ```
+
+3. Pass: no alert appears, and clicking "click" does nothing. In Elements, `#markdownDisplay` shows the `<img>`
+   with no `onerror`, no `<script>`, and an `<a>` with no `href`.
+4. To prove the test can fail: in `main.js`, change `DOMPurify.sanitize(marked.parse(markdownText))` to
+   `marked.parse(markdownText)`, reload with step 2: an "img" alert appears. Undo the change (`git checkout main.js`)
+   and reload: no alert.
+5. Clean up: `localStorage.removeItem('chidiMdSession')` in the console, or click Restart.
 
 ### Adding a check
 
@@ -58,7 +73,7 @@ none of the three may survive. Restart afterwards.
 
 ## Runs that vary
 
-AI output comes from Gemini and varies run to run. Judge AI features on whether a reply arrives and is displayed,
+AI output comes from a local model and varies run to run. Judge AI features on whether a reply arrives and is displayed,
 not on its wording. To test error handling, inject the failure (a wrong key, offline mode in devtools) rather than
 waiting for one.
 
