@@ -46,6 +46,11 @@ def open_browser(url):
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # Revalidate every file, so an edited main.js or style.css shows up on a normal reload.
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def log_message(self, format, *args):
         pass  # Request logs drown out the URL; errors still show in the browser console.
 
