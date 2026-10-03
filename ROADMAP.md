@@ -57,8 +57,11 @@ Goal: reading and chatting feel reliable.
   entries matching the text already in the field). Evidence: new browser test, both APIs, Chromium and Firefox,
   fails on the old code; against a real Ollama, 8 chat models listed, `nomic-embed-text` disabled, keyboard pick of
   a second model works (2026-10-03). Not seen: the native dropdown popup itself (not in screenshots).
-- [ ] P2-05 An answer that arrives after switching files is appended under the new file, and the question went into
-  the old file's conversation. Found while doing P2-01 (2026-10-03); affects suggested questions, Summarize and Ask All.
+- [x] P2-05 Late answers: each displayed file is a new view (`state.viewId`, also bumped by Restart); Summarize,
+  Suggest, questions and Ask All drop a reply whose view has changed and say so in the status line. A typed or
+  suggested question's answer is kept in its own file's conversation, not the new one's. Found while doing P2-01.
+  Evidence: four browser tests fail on the old code; the history test fails if the answer goes to the current
+  conversation (2026-10-03).
 
 ## Phase 3: Output / sharing
 
