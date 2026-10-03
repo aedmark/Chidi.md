@@ -72,6 +72,8 @@ pinned CDN URL with SRI, like `marked` (D-001).
 **Consequences:** Nothing leaves the machine. The local server must allow the page's origin (CORS; for Ollama,
 `OLLAMA_ORIGINS`). Saved sessions from older versions may contain an `apiKey` field, which must be deleted on restore.
 **Review trigger:** A request for remote or hosted providers.
+Update 2026-10-03: implemented in P1-06. OpenAI-compatible base URLs include `/v1` (as OpenAI clients expect);
+Ollama's is the server root.
 
 ## D-008 Playwright allowed as a development-only dependency  (2026-10-03, status: accepted)
 **Context:** Q-005; P4-01.

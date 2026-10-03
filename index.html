@@ -41,6 +41,7 @@
             </div>
             <div class="control-group">
                  <div class="session-controls">
+                    <button id="modelSettingsBtn" title="Choose the local model server">Model</button>
                     <button id="saveSessionBtn" title="Save loaded files and history">Save</button>
     	            <button id="restartSessionBtn" title="Clear all data and start a new session">Restart</button>
                 </div>
@@ -73,6 +74,29 @@
             <div class="modal-actions">
                 <button id="confirmInputBtn">Confirm</button>
                 <button id="cancelInputBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modelSettingsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Local Model</h3>
+            <p>Point chidi.md at a model server on this machine. Nothing is sent anywhere else.</p>
+            <label for="modelApiStyle" class="modal-label">Server type</label>
+            <select id="modelApiStyle" class="modal-input">
+                <option value="ollama">Ollama</option>
+                <option value="openai">OpenAI-compatible (llama.cpp, LM Studio, vLLM...)</option>
+            </select>
+            <label for="modelBaseUrl" class="modal-label">Server URL</label>
+            <input type="text" id="modelBaseUrl" class="modal-input" placeholder="http://localhost:11434">
+            <label for="modelName" class="modal-label">Model</label>
+            <input type="text" id="modelName" class="modal-input" list="modelNameOptions" placeholder="e.g. llama3.2">
+            <datalist id="modelNameOptions"></datalist>
+            <p id="modelSettingsError" class="modal-error"></p>
+            <div class="modal-actions">
+                <button id="fetchModelsBtn">List Models</button>
+                <button id="saveModelSettingsBtn">Save</button>
+                <button id="cancelModelSettingsBtn">Cancel</button>
             </div>
         </div>
     </div>

@@ -23,6 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
         inputModalField: document.getElementById('inputModalField'),
         confirmInputBtn: document.getElementById('confirmInputBtn'),
         cancelInputBtn: document.getElementById('cancelInputBtn'),
+        modelSettingsBtn: document.getElementById('modelSettingsBtn'),
+        modelSettingsModal: document.getElementById('modelSettingsModal'),
+        modelApiStyle: document.getElementById('modelApiStyle'),
+        modelBaseUrl: document.getElementById('modelBaseUrl'),
+        modelName: document.getElementById('modelName'),
+        modelNameOptions: document.getElementById('modelNameOptions'),
+        modelSettingsError: document.getElementById('modelSettingsError'),
+        fetchModelsBtn: document.getElementById('fetchModelsBtn'),
+        saveModelSettingsBtn: document.getElementById('saveModelSettingsBtn'),
+        cancelModelSettingsBtn: document.getElementById('cancelModelSettingsBtn'),
     };
 
     // --- Application State ---
@@ -31,11 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
         history: [],
         historyIndex: -1,
         currentDisplayedMarkdownContent: '',
-        geminiChatHistory: [],
-        apiKey: null,
+        chatHistory: [],
+        modelSettings: null,
     };
 
     const defaultTitle = "chidi.md";
+    // Local model servers only, and no API keys (D-007).
+    const DEFAULT_BASE_URLS = { ollama: 'http://localhost:11434', openai: 'http://localhost:8080/v1' };
+    const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
     const SESSION_STORAGE_KEY = 'chidiMdSession';
     
     // --- Modal Logic ---
@@ -76,25 +89,117 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Core Functions ---
-    const getApiKey = async () => {
-        if (state.apiKey) return state.apiKey;
-        const key = await showInputModal({
-            title: "API Key Required",
-            prompt: "Please enter your Gemini API Key to use AI features.",
-            placeholder: "Enter your API key here",
-            confirmText: "Save Key"
-        });
-        if (key) {
-            state.apiKey = key;
-            showMessage("API Key accepted. Saving to session.", "info");
-            saveSession();
-            return key;
+    const isLocalUrl = (value) => {
+        try {
+            const url = new URL(value);
+            const host = url.hostname;
+            return ['http:', 'https:'].includes(url.protocol) &&
+                (LOCAL_HOSTS.includes(host) || host.endsWith('.localhost'));
+        } catch {
+            return false;
         }
-        showMessage("API Key not provided. AI features are disabled.", "warn");
-        return null;
+    };
+    const trimSlash = (value) => value.trim().replace(/\/+$/, '');
+
+    // Both servers take OpenAI-style {role, content} messages; only the paths and reply shapes differ.
+    const modelEndpoints = (settings) => settings.apiStyle === 'ollama'
+        ? { chat: `${settings.baseUrl}/api/chat`, models: `${settings.baseUrl}/api/tags` }
+        : { chat: `${settings.baseUrl}/chat/completions`, models: `${settings.baseUrl}/models` };
+
+    const listModels = async (settings) => {
+        const response = await fetch(modelEndpoints(settings).models);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        const names = settings.apiStyle === 'ollama'
+            ? (result.models || []).map(m => m.name)
+            : (result.data || []).map(m => m.id);
+        return names.filter(name => typeof name === 'string');
     };
 
-    const getApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`;
+    const readModelSettingsForm = () => ({
+        apiStyle: elements.modelApiStyle.value,
+        baseUrl: trimSlash(elements.modelBaseUrl.value),
+        model: elements.modelName.value.trim(),
+    });
+
+    const showModelSettings = () => {
+        return new Promise((resolve) => {
+            const current = state.modelSettings || { apiStyle: 'ollama', baseUrl: DEFAULT_BASE_URLS.ollama, model: '' };
+            elements.modelApiStyle.value = current.apiStyle;
+            elements.modelBaseUrl.value = current.baseUrl;
+            elements.modelName.value = current.model;
+            elements.modelSettingsError.textContent = '';
+            elements.modelSettingsModal.classList.remove('hidden');
+            elements.modelBaseUrl.focus();
+
+            const onStyleChange = () => {
+                // Swap the URL only if it is still the other style's default.
+                if (Object.values(DEFAULT_BASE_URLS).includes(trimSlash(elements.modelBaseUrl.value))) {
+                    elements.modelBaseUrl.value = DEFAULT_BASE_URLS[elements.modelApiStyle.value];
+                }
+            };
+            const onFetch = async () => {
+                const settings = readModelSettingsForm();
+                if (!isLocalUrl(settings.baseUrl)) {
+                    elements.modelSettingsError.textContent = 'Only localhost, 127.0.0.1 or [::1] URLs are allowed.';
+                    return;
+                }
+                elements.modelSettingsError.textContent = 'Asking the server...';
+                try {
+                    const names = await listModels(settings);
+                    elements.modelNameOptions.replaceChildren(...names.map(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        return option;
+                    }));
+                    if (!elements.modelName.value && names.length) elements.modelName.value = names[0];
+                    elements.modelSettingsError.textContent = names.length
+                        ? `Found ${names.length} model(s).` : 'The server reported no models.';
+                } catch (error) {
+                    elements.modelSettingsError.textContent =
+                        `Could not reach the server (${error.message}). Is it running, and does it allow this origin (CORS)?`;
+                }
+            };
+            const onSave = () => {
+                const settings = readModelSettingsForm();
+                if (!isLocalUrl(settings.baseUrl)) {
+                    elements.modelSettingsError.textContent = 'Only localhost, 127.0.0.1 or [::1] URLs are allowed.';
+                    return;
+                }
+                if (!settings.model) {
+                    elements.modelSettingsError.textContent = 'Enter a model name, or use List Models.';
+                    return;
+                }
+                state.modelSettings = settings;
+                showMessage(`Model set: ${settings.model} at ${settings.baseUrl}.`, 'info');
+                cleanup();
+                updateUI();
+                resolve(settings);
+            };
+            const onCancel = () => {
+                cleanup();
+                resolve(null);
+            };
+            const onKeydown = (e) => {
+                if (e.key === 'Escape') onCancel();
+            };
+            const cleanup = () => {
+                elements.modelSettingsModal.classList.add('hidden');
+                elements.modelApiStyle.removeEventListener('change', onStyleChange);
+                elements.fetchModelsBtn.removeEventListener('click', onFetch);
+                elements.saveModelSettingsBtn.removeEventListener('click', onSave);
+                elements.cancelModelSettingsBtn.removeEventListener('click', onCancel);
+                document.removeEventListener('keydown', onKeydown);
+            };
+
+            elements.modelApiStyle.addEventListener('change', onStyleChange);
+            elements.fetchModelsBtn.addEventListener('click', onFetch);
+            elements.saveModelSettingsBtn.addEventListener('click', onSave);
+            elements.cancelModelSettingsBtn.addEventListener('click', onCancel);
+            document.addEventListener('keydown', onKeydown);
+        });
+    };
+
     // File content and model replies are untrusted: sanitise every render (D-006).
     const convertMarkdownToHtml = (markdownText) => DOMPurify.sanitize(marked.parse(markdownText));
     const showMessage = (message, type = 'info') => {
@@ -110,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Session Management ---
     const saveSession = () => {
-        if (state.loadedFiles.length === 0 && !state.apiKey) {
+        if (state.loadedFiles.length === 0 && !state.modelSettings) {
             showMessage("Nothing to save.", "warn");
             return;
         }
@@ -118,8 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadedFiles: state.loadedFiles,
             history: state.history,
             historyIndex: state.historyIndex,
-            apiKey: state.apiKey,
-            geminiChatHistory: state.geminiChatHistory
+            chatHistory: state.chatHistory,
+            modelSettings: state.modelSettings
         };
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
         showMessage("Session saved successfully!", "success");
@@ -139,12 +244,16 @@ document.addEventListener('DOMContentLoaded', () => {
             state.loadedFiles = sessionData.loadedFiles || [];
             state.history = sessionData.history || [];
             state.historyIndex = sessionData.historyIndex ?? -1;
-            state.apiKey = sessionData.apiKey || null;
-            state.geminiChatHistory = sessionData.geminiChatHistory || [];
+            const settings = sessionData.modelSettings;
+            state.modelSettings = settings && isLocalUrl(settings.baseUrl) ? settings : null;
+            // Sessions saved before D-007 hold a Gemini key and Gemini-format chat; drop both from storage now.
+            if ('apiKey' in sessionData || 'geminiChatHistory' in sessionData) {
+                delete sessionData.apiKey;
+                delete sessionData.geminiChatHistory;
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+            }
 
-            let message = "Previous session restored.";
-            if (state.apiKey) message += " API key loaded.";
-            showMessage(message, "success");
+            showMessage("Previous session restored.", "success");
 
             if (state.historyIndex !== -1 && state.history[state.historyIndex] !== undefined) {
                 displayFile(state.history[state.historyIndex]);
@@ -156,8 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const restartSession = () => {
-        if (confirm("Are you sure you want to restart? This will clear all loaded files, history, and the saved API key.")) {
-            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', geminiChatHistory: [], apiKey: null };
+        if (confirm("Are you sure you want to restart? This will clear all loaded files, history, and model settings.")) {
+            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', chatHistory: [], modelSettings: null };
             localStorage.removeItem(SESSION_STORAGE_KEY);
             elements.markdownDisplay.innerHTML = '<p class="placeholder-text">Awaiting file selection...</p>';
             elements.mainTitle.textContent = defaultTitle;
@@ -171,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateUI = () => {
         const hasFiles = state.loadedFiles.length > 0;
         const isDisplayingFile = state.historyIndex > -1;
-        const hasSessionData = state.loadedFiles.length > 0 || !!state.apiKey;
+        const hasSessionData = state.loadedFiles.length > 0 || !!state.modelSettings;
         elements.fileCountDisplay.textContent = `FILES: ${state.loadedFiles.length}`;
         elements.prevBtn.disabled = state.historyIndex <= 0;
         elements.nextBtn.disabled = !hasFiles;
@@ -208,9 +317,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.currentDisplayedMarkdownContent = selectedFile.content;
         elements.markdownDisplay.innerHTML = convertMarkdownToHtml(state.currentDisplayedMarkdownContent);
         showMessage(`Displaying: ${selectedFile.name}`, 'info');
-        state.geminiChatHistory = [{
+        state.chatHistory = [{
             role: "user",
-            parts: [{ text: `I am currently viewing an article titled "${cleanFilename}". Its full content is:\n\n\`\`\`markdown\n${state.currentDisplayedMarkdownContent}\n\`\`\`\n\nWe can discuss this article.` }]
+            content: `I am currently viewing an article titled "${cleanFilename}". Its full content is:\n\n\`\`\`markdown\n${state.currentDisplayedMarkdownContent}\n\`\`\`\n\nWe can discuss this article.`
         }];
         updateUI();
     };
@@ -306,20 +415,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- AI Functions ---
-    const callGeminiApi = async (chatHistory) => {
-        if (!state.apiKey && !(await getApiKey())) return "Error: API Key not provided.";
+    const callModel = async (messages) => {
+        const settings = state.modelSettings || await showModelSettings();
+        if (!settings) return "Error: No local model configured.";
+        if (!isLocalUrl(settings.baseUrl)) return "Error: Only local model servers are allowed.";
         toggleLoader(true);
         try {
-            const response = await fetch(getApiUrl(), {
+            const response = await fetch(modelEndpoints(settings).chat, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: chatHistory })
+                body: JSON.stringify({ model: settings.model, messages, stream: false })
             });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const result = await response.json();
-            return result.candidates?.[0]?.content?.parts?.[0]?.text || "Error: Invalid response from AI.";
+            const text = settings.apiStyle === 'ollama'
+                ? result.message?.content
+                : result.choices?.[0]?.message?.content;
+            return typeof text === 'string' && text ? text : "Error: Invalid response from the model server.";
         } catch (error) {
-            showMessage("Failed to connect to AI service. Check console.", "error");
+            showMessage("Failed to reach the local model server. Check Model settings and the console.", "error");
             return `Error: ${error.message}`;
         } finally {
             toggleLoader(false);
@@ -357,9 +471,9 @@ document.addEventListener('DOMContentLoaded', () => {
             questionButtons.forEach(btn => btn.disabled = true);
             
             showMessage("Getting answer...", "info");
-            state.geminiChatHistory.push({ role: "user", parts: [{ text: question }] });
-            const answer = await callGeminiApi(state.geminiChatHistory);
-            state.geminiChatHistory.push({ role: "model", parts: [{ text: answer }] });
+            state.chatHistory.push({ role: "user", content: question });
+            const answer = await callModel(state.chatHistory);
+            state.chatHistory.push({ role: "assistant", content: answer });
             appendAiOutput(`Answer to: "${question}"`, answer);
             showMessage("Answer generated!", "success");
         } finally {
@@ -400,15 +514,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     elements.summarizeBtn.addEventListener('click', async () => {
-        const chat = [...state.geminiChatHistory, { role: "user", parts: [{ text: "Summarize the current article concisely." }] }];
-        const summary = await callGeminiApi(chat);
+        const chat = [...state.chatHistory, { role: "user", content: "Summarize the current article concisely." }];
+        const summary = await callModel(chat);
         appendAiOutput("Article Summary", summary);
     });
     
     elements.suggestQuestionsBtn.addEventListener('click', async () => {
         const prompt = "Directly provide a list of 3-4 thought-provoking questions based on the article. Each question must end with a question mark.";
-        const chat = [...state.geminiChatHistory, { role: "user", parts: [{ text: prompt }] }];
-        const questions = await callGeminiApi(chat);
+        const chat = [...state.chatHistory, { role: "user", content: prompt }];
+        const questions = await callModel(chat);
         appendAiOutput("Suggested Questions", questions);
     });
 
@@ -423,12 +537,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let combinedContent = "You have access to the following documents:\n\n";
         state.loadedFiles.forEach(file => { combinedContent += `--- DOCUMENT: ${file.name} ---\n${file.content}\n\n`; });
         const prompt = `${combinedContent}Based on all the documents provided, please answer the following question: ${userQuestion}`;
-        const answer = await callGeminiApi([{ role: 'user', parts: [{ text: prompt }] }]);
+        const answer = await callModel([{ role: 'user', content: prompt }]);
         appendAiOutput(`Answer based on all files`, answer);
     });
     
     elements.scanFolderBtn.addEventListener('click', handleDirectoryScan);
     elements.saveSessionBtn.addEventListener('click', saveSession);
+    elements.modelSettingsBtn.addEventListener('click', showModelSettings);
     if (elements.restartSessionBtn) {
         elements.restartSessionBtn.addEventListener('click', restartSession);
     }
