@@ -68,9 +68,12 @@ Newest first. Past 10 entries, move the oldest to `docs/archive/`.
 **Done:** P2-02; filed P2-06 and P2-07.
 **Changed:** `saveSession()` catches a failed write and explains it; one browser test.
 **Decisions:** none.
-**Verified:** 34/34 browser smoke and branch CI; the new test fails on the old code (uncaught exception, no message).
+**Verified:** 34/34 browser smoke locally and CI run 37139829408 on `main`; the new test fails on the old code
+(uncaught exception, no message).
 **Not verified:** Safari's quota behaviour.
 **Problems / surprises:** sessions are twice their files' size because chat history repeats the file text (P2-06).
+The checkout was switched from the feature branch to `main` outside the session before the commit, so P2-02 was
+committed and pushed straight to `main` (CI green there). Check `git branch --show-current` before committing.
 **Corrections:** none.
 **Left undone:** none.
 **Next session should start with:** P2-07.
