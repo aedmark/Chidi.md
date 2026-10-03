@@ -23,7 +23,7 @@ All in `main.js`, in this order:
 | --- | --- | --- |
 | Elements and state | `elements`, `state` | everything |
 | Input modal | `showInputModal()` | `#inputModal` (Ask All) |
-| Model settings | `showModelSettings()`, `isLocalUrl()`, `modelEndpoints()`, `listModels()` | `#modelSettingsModal`, model server |
+| Model settings | `showModelSettings()`, `isLocalUrl()`, `modelEndpoints()`, `listModels()`, `fillModelSelect()` | `#modelSettingsModal`, model server |
 | Rendering | `convertMarkdownToHtml()` | `marked`, DOMPurify |
 | Sessions | `saveSession()`, `restoreSession()`, `restartSession()` | `localStorage` key `chidiMdSession` |
 | UI state | `updateUI()` | button enabled/disabled states |
@@ -43,7 +43,7 @@ state -> JSON -> localStorage["chidiMdSession"] -> restored on next load
 | Interface | Producer | Consumer | Contract / compatibility |
 | --- | --- | --- | --- |
 | `chidiMdSession` (localStorage) | `saveSession()` | `restoreSession()` | `{loadedFiles, history, historyIndex, chatHistory, modelSettings}`; missing fields default; pre-D-007 `apiKey` and `geminiChatHistory` are deleted on restore (D-003) |
-| Ollama | `callModel()`, `listModels()` | local server | `POST {base}/api/chat` `{model, messages, stream:false}` → `message.content`; `GET {base}/api/tags` → `models[].name` |
+| Ollama | `callModel()`, `listModels()` | local server | `POST {base}/api/chat` `{model, messages, stream:false}` → `message.content`; `GET {base}/api/tags` → `models[].name`; `POST {base}/api/show` `{model}` → `capabilities` (`completion` = can chat) |
 | OpenAI-compatible | `callModel()`, `listModels()` | local server | `POST {base}/chat/completions` → `choices[0].message.content`; `GET {base}/models` → `data[].id`; `base` ends in `/v1` |
 | Element IDs | `index.html` | `elements` in `main.js` | Checked by `tests/check_structure.py` |
 

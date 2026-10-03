@@ -44,9 +44,10 @@ cd tests/e2e && npm ci && npm test
 - Starts its own server on port 8123 (`playwright.config.js`), so it does not clash with a dev server on 8000.
 - Serves `marked` and DOMPurify from `tests/e2e/node_modules`. Their bytes match the SRI hashes in `index.html`, so
   a version bump in `index.html` must be matched in `tests/e2e/package.json` or the scripts fail to load.
-- Stubs the model server at `http://localhost:11434` (both APIs); set `net.modelReply` in a test to change the reply.
+- Stubs the model server at `http://localhost:11434` (both APIs; models `stub-chat`, `other-chat`, and `stub-embed`,
+  which cannot chat); set `net.modelReply` in a test to change the reply. Other localhost ports refuse connections.
 - Any request to another host fails the test (the `net` fixture). Google Fonts are aborted silently.
-- A pass ends with `16 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
+- A pass ends with `20 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
 - Writes `test-results/` on failure (gitignored).
 
 ### CI
@@ -63,7 +64,8 @@ about 3 minutes longer than a passing one, because each failed assertion waits o
 3. NEXT shows a different file; PREV returns to the previous one.
 4. Scan Folder on a folder with nested `.md` files (Chrome/Edge only).
 5. Save, reload the page, choose Restore: same files and current file.
-6. Model: try `https://example.com` (refused), then `http://localhost:11434`, List Models, pick a chat model, Save.
+6. Model: the dialog lists models on open; embedding models show "(cannot chat)" and are disabled. Try
+   `https://example.com` (refused), then `http://localhost:11434`, open the Model dropdown, pick a non-first model, Save.
    Summarize, Suggest, click a suggested question, Ask All: each appends a section below the file. Repeat Suggest
    with OpenAI-compatible and `http://localhost:11434/v1`.
 7. Restart: everything clears, reload shows no restore prompt.

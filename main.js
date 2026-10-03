@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modelApiStyle: document.getElementById('modelApiStyle'),
         modelBaseUrl: document.getElementById('modelBaseUrl'),
         modelName: document.getElementById('modelName'),
-        modelNameOptions: document.getElementById('modelNameOptions'),
         modelSettingsError: document.getElementById('modelSettingsError'),
         fetchModelsBtn: document.getElementById('fetchModelsBtn'),
         saveModelSettingsBtn: document.getElementById('saveModelSettingsBtn'),
@@ -106,14 +105,52 @@ document.addEventListener('DOMContentLoaded', () => {
         ? { chat: `${settings.baseUrl}/api/chat`, models: `${settings.baseUrl}/api/tags` }
         : { chat: `${settings.baseUrl}/chat/completions`, models: `${settings.baseUrl}/models` };
 
+    // Returns [{name, chat}], where chat is true, false (cannot chat, e.g. an embedding model) or null (unknown).
+    // Ollama reports capabilities per model; OpenAI-compatible servers do not, so there we only spot embedders by name.
+    const ollamaCanChat = async (baseUrl, name) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/show`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: name })
+            });
+            if (!response.ok) return null;
+            const { capabilities } = await response.json();
+            return Array.isArray(capabilities) ? capabilities.includes('completion') : null;
+        } catch {
+            return null;
+        }
+    };
+
     const listModels = async (settings) => {
         const response = await fetch(modelEndpoints(settings).models);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
-        const names = settings.apiStyle === 'ollama'
+        const names = (settings.apiStyle === 'ollama'
             ? (result.models || []).map(m => m.name)
-            : (result.data || []).map(m => m.id);
-        return names.filter(name => typeof name === 'string');
+            : (result.data || []).map(m => m.id)
+        ).filter(name => typeof name === 'string');
+        if (settings.apiStyle === 'ollama') {
+            const chat = await Promise.all(names.map(name => ollamaCanChat(settings.baseUrl, name)));
+            return names.map((name, i) => ({ name, chat: chat[i] }));
+        }
+        return names.map(name => ({ name, chat: /embed/i.test(name) ? false : null }));
+    };
+
+    const fillModelSelect = (models, preferred) => {
+        // Models that cannot chat stay visible, so the list matches the server, but cannot be picked (P2-04).
+        const sorted = [...models.filter(m => m.chat !== false), ...models.filter(m => m.chat === false)];
+        if (preferred && !models.some(m => m.name === preferred)) sorted.unshift({ name: preferred, chat: null });
+        elements.modelName.replaceChildren(...sorted.map(({ name, chat }) => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = chat === false ? `${name} (cannot chat)` : name;
+            option.disabled = chat === false;
+            return option;
+        }));
+        const keep = sorted.find(m => m.name === preferred && m.chat !== false);
+        const first = sorted.find(m => m.chat !== false);
+        elements.modelName.value = (keep || first || { name: '' }).name;
     };
 
     const readModelSettingsForm = () => ({
@@ -127,18 +164,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const current = state.modelSettings || { apiStyle: 'ollama', baseUrl: DEFAULT_BASE_URLS.ollama, model: '' };
             elements.modelApiStyle.value = current.apiStyle;
             elements.modelBaseUrl.value = current.baseUrl;
-            elements.modelName.value = current.model;
+            fillModelSelect([], current.model);
             elements.modelSettingsError.textContent = '';
             elements.modelSettingsModal.classList.remove('hidden');
             elements.modelBaseUrl.focus();
 
-            const onStyleChange = () => {
-                // Swap the URL only if it is still the other style's default.
-                if (Object.values(DEFAULT_BASE_URLS).includes(trimSlash(elements.modelBaseUrl.value))) {
-                    elements.modelBaseUrl.value = DEFAULT_BASE_URLS[elements.modelApiStyle.value];
-                }
-            };
+            let fetchId = 0;
             const onFetch = async () => {
+                // Opening, changing style and editing the URL can each start a fetch; only the newest may fill the list.
+                const id = ++fetchId;
                 const settings = readModelSettingsForm();
                 if (!isLocalUrl(settings.baseUrl)) {
                     elements.modelSettingsError.textContent = 'Only localhost, 127.0.0.1 or [::1] URLs are allowed.';
@@ -146,19 +180,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 elements.modelSettingsError.textContent = 'Asking the server...';
                 try {
-                    const names = await listModels(settings);
-                    elements.modelNameOptions.replaceChildren(...names.map(name => {
-                        const option = document.createElement('option');
-                        option.value = name;
-                        return option;
-                    }));
-                    if (!elements.modelName.value && names.length) elements.modelName.value = names[0];
-                    elements.modelSettingsError.textContent = names.length
-                        ? `Found ${names.length} model(s).` : 'The server reported no models.';
+                    const models = await listModels(settings);
+                    if (id !== fetchId) return;
+                    fillModelSelect(models, settings.model || current.model);
+                    const usable = models.filter(m => m.chat !== false).length;
+                    elements.modelSettingsError.textContent = !models.length ? 'The server reported no models.'
+                        : usable ? `Found ${usable} chat model(s).` : 'The server has no models that can chat.';
                 } catch (error) {
+                    if (id !== fetchId) return;
                     elements.modelSettingsError.textContent =
                         `Could not reach the server (${error.message}). Is it running, and does it allow this origin (CORS)?`;
                 }
+            };
+            const onStyleChange = () => {
+                // Swap the URL only if it is still the other style's default.
+                if (Object.values(DEFAULT_BASE_URLS).includes(trimSlash(elements.modelBaseUrl.value))) {
+                    elements.modelBaseUrl.value = DEFAULT_BASE_URLS[elements.modelApiStyle.value];
+                }
+                onFetch();
             };
             const onSave = () => {
                 const settings = readModelSettingsForm();
@@ -167,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 if (!settings.model) {
-                    elements.modelSettingsError.textContent = 'Enter a model name, or use List Models.';
+                    elements.modelSettingsError.textContent = 'Pick a model; use Refresh List if none are shown.';
                     return;
                 }
                 state.modelSettings = settings;
@@ -187,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.modelSettingsModal.classList.add('hidden');
                 elements.modelApiStyle.removeEventListener('change', onStyleChange);
                 elements.fetchModelsBtn.removeEventListener('click', onFetch);
+                elements.modelBaseUrl.removeEventListener('change', onFetch);
                 elements.saveModelSettingsBtn.removeEventListener('click', onSave);
                 elements.cancelModelSettingsBtn.removeEventListener('click', onCancel);
                 document.removeEventListener('keydown', onKeydown);
@@ -194,9 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             elements.modelApiStyle.addEventListener('change', onStyleChange);
             elements.fetchModelsBtn.addEventListener('click', onFetch);
+            elements.modelBaseUrl.addEventListener('change', onFetch);
             elements.saveModelSettingsBtn.addEventListener('click', onSave);
             elements.cancelModelSettingsBtn.addEventListener('click', onCancel);
             document.addEventListener('keydown', onKeydown);
+            onFetch();
         });
     };
 

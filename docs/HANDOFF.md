@@ -12,7 +12,7 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 6, on `main`: P4-02 CI merged._
+_Last updated: 2026-10-03, session 7, on `main`: P2-04 model picker merged._
 
 **Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
 pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. P4-01 adds an offline
@@ -26,7 +26,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
-| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **16/16**; each of 4 fixes removed fails its test |
+| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **20/20**; each of 4 fixes removed fails its test; P2-04 test fails on the old picker |
 | GitHub Actions `checks` | green on the P4-02 branch; a broken element ID failed both jobs |
 | Hostile Markdown (TESTING.md), session 4 | with fix: payload stripped, nothing ran; fix removed: `onerror` ran (test can fail) |
 | Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
@@ -35,7 +35,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 **What works**
 - **Reading** (`main.js` file loading and display). Add files or scan a folder; PREV/NEXT; duplicates skipped.
 - **Safe rendering** (D-006). Raw HTML in files and replies is sanitised.
-- **Local AI** (D-007, P1-06). Model dialog, List Models, Summarize, Suggest, follow-ups, Ask All.
+- **Local AI** (D-007, P1-06, P2-04). Model dialog with a model list from the server, Summarize, Suggest, follow-ups, Ask All.
 - **Sessions** (D-003). Save, restore on load, restart; model settings included.
 
 **Not verified**
@@ -43,12 +43,11 @@ Ollama on port 11434 with `llama3.1:8b`)
 
 **Gotchas for the next session**
 - Agents merge and push their own branches after branch CI is green (D-009).
-- List Models fills in the first model, which on this machine is not a chat model in every case (P2-04).
 - Large local models can take a minute per reply; wait for the loader rather than retrying.
 
 ## Next steps (in order)
 
-1. P2-04, then P2-01 (free-text follow-ups).
+1. P2-01 (free-text follow-ups).
 2. P4-03: keyboard and focus handling.
 3. P6-02: tag `v0.2.0` now that Phase 1 is done (D-005).
 
@@ -59,6 +58,23 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 7: 2026-10-03: model picker
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P2-04, plus the maintainer's report that the Model list never let them pick another model.
+**Done:** P2-04.
+**Changed:** `index.html` Model field is a `<select>`, button renamed Refresh List; `main.js` adds `ollamaCanChat()`,
+`fillModelSelect()`, auto-listing on open/type/URL change with a guard against stale responses; e2e stub lists three
+models and answers `/api/show`; new P2-04 test for both APIs; other localhost ports refuse in tests.
+**Decisions:** none.
+**Verified:** 20/20 browser smoke (Chromium, Firefox); the P2-04 test fails on the old `main.js` and `index.html`;
+real Ollama: 8 chat models, embedder disabled, keyboard selection of `llama3.1:8b`.
+**Not verified:** the native dropdown popup by eye (screenshots do not show it); maintainer to confirm in Chrome.
+**Problems / surprises:** root cause was the `<datalist>`, which filters suggestions by the field's current text.
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P2-01.
 
 ### Session 6: 2026-10-03: CI
 

@@ -90,11 +90,12 @@
             <label for="modelBaseUrl" class="modal-label">Server URL</label>
             <input type="text" id="modelBaseUrl" class="modal-input" placeholder="http://localhost:11434">
             <label for="modelName" class="modal-label">Model</label>
-            <input type="text" id="modelName" class="modal-input" list="modelNameOptions" placeholder="e.g. llama3.2">
-            <datalist id="modelNameOptions"></datalist>
+            <select id="modelName" class="modal-input">
+                <option value="">No models listed yet</option>
+            </select>
             <p id="modelSettingsError" class="modal-error"></p>
             <div class="modal-actions">
-                <button id="fetchModelsBtn">List Models</button>
+                <button id="fetchModelsBtn">Refresh List</button>
                 <button id="saveModelSettingsBtn">Save</button>
                 <button id="cancelModelSettingsBtn">Cancel</button>
             </div>

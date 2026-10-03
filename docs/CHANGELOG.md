@@ -12,6 +12,8 @@ changes land.
   Choose it with the new **Model** button. API keys are gone, and a key saved by an older version is deleted.
 
 ### Fixed
+- The Model list now opens and lets you pick any model. Models that cannot chat, such as embedding models, are
+  shown but cannot be picked.
 - HTML inside a Markdown file or an AI reply can no longer run scripts on the page.
 
 ## 2025-07-17
