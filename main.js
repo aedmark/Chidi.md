@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
         inputModalField: document.getElementById('inputModalField'),
         confirmInputBtn: document.getElementById('confirmInputBtn'),
         cancelInputBtn: document.getElementById('cancelInputBtn'),
+        askForm: document.getElementById('askForm'),
+        askInput: document.getElementById('askInput'),
+        askBtn: document.getElementById('askBtn'),
         modelSettingsBtn: document.getElementById('modelSettingsBtn'),
         modelSettingsModal: document.getElementById('modelSettingsModal'),
         modelApiStyle: document.getElementById('modelApiStyle'),
@@ -42,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentDisplayedMarkdownContent: '',
         chatHistory: [],
         modelSettings: null,
+        isAsking: false,
     };
 
     const defaultTitle = "chidi.md";
@@ -308,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const restartSession = () => {
         if (confirm("Are you sure you want to restart? This will clear all loaded files, history, and model settings.")) {
-            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', chatHistory: [], modelSettings: null };
+            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', chatHistory: [], modelSettings: null, isAsking: false };
             localStorage.removeItem(SESSION_STORAGE_KEY);
             elements.markdownDisplay.innerHTML = '<p class="placeholder-text">Awaiting file selection...</p>';
             elements.mainTitle.textContent = defaultTitle;
@@ -328,6 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.nextBtn.disabled = !hasFiles;
         elements.summarizeBtn.disabled = !isDisplayingFile;
         elements.suggestQuestionsBtn.disabled = !isDisplayingFile;
+        elements.askInput.disabled = !isDisplayingFile || state.isAsking;
+        elements.askBtn.disabled = !isDisplayingFile || state.isAsking;
         elements.askAllFilesBtn.disabled = state.loadedFiles.length < 2;
         elements.saveSessionBtn.disabled = !hasSessionData;
         if (elements.restartSessionBtn) elements.restartSessionBtn.disabled = !hasSessionData && !localStorage.getItem(SESSION_STORAGE_KEY);
@@ -505,13 +511,16 @@ document.addEventListener('DOMContentLoaded', () => {
         container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     
-    const handleQuestionClick = async (question) => {
+    // Typed questions and suggested-question buttons share one conversation about the current file (P2-01).
+    const askAboutCurrentFile = async (question) => {
+        if (state.isAsking || !question.trim()) return;
         const questionButtons = document.querySelectorAll('.question-button');
-        
         try {
-            // Disable all question buttons to prevent multiple clicks
+            // One question at a time, so answers land in the order they were asked.
+            state.isAsking = true;
             questionButtons.forEach(btn => btn.disabled = true);
-            
+            updateUI();
+
             showMessage("Getting answer...", "info");
             state.chatHistory.push({ role: "user", content: question });
             const answer = await callModel(state.chatHistory);
@@ -519,10 +528,12 @@ document.addEventListener('DOMContentLoaded', () => {
             appendAiOutput(`Answer to: "${question}"`, answer);
             showMessage("Answer generated!", "success");
         } finally {
-            // Re-enable all question buttons once the process is complete (success or fail)
+            state.isAsking = false;
             questionButtons.forEach(btn => btn.disabled = false);
+            updateUI();
         }
     };
+    const handleQuestionClick = askAboutCurrentFile;
 
     // --- Event Listeners ---
     elements.mdFileInput.addEventListener('change', async (event) => {
@@ -583,6 +594,15 @@ document.addEventListener('DOMContentLoaded', () => {
         appendAiOutput(`Answer based on all files`, answer);
     });
     
+    elements.askForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = elements.askInput.value.trim();
+        if (!question) return;
+        elements.askInput.value = '';
+        await askAboutCurrentFile(question);
+        elements.askInput.focus();
+    });
+
     elements.scanFolderBtn.addEventListener('click', handleDirectoryScan);
     elements.saveSessionBtn.addEventListener('click', saveSession);
     elements.modelSettingsBtn.addEventListener('click', showModelSettings);

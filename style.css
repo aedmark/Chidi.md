@@ -128,6 +128,41 @@ body {
   transform: translateY(-50%);
 }
 
+.ask-form {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.ask-input {
+    flex-grow: 1;
+    min-width: 0;
+    padding: 0.75rem;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    color: var(--text-primary);
+    background-color: var(--screen-bg);
+    border: 2px solid #495057;
+    border-radius: 4px;
+}
+
+.ask-input:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+}
+
+.ask-input:disabled {
+    opacity: 0.5;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
 .controls-container {
     display: flex;
     flex-wrap: wrap; 

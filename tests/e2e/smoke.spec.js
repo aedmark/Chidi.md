@@ -234,3 +234,60 @@ for (const [style, url] of [['ollama', MODEL], ['openai', `${MODEL}/v1`]]) {
         await expect(select).toHaveValue('other-chat');
     });
 }
+
+test('answers typed questions about the current file, keeping the conversation (P2-01)', async ({ page, net }) => {
+    await page.goto('/');
+    const input = page.locator('#askInput');
+    await expect(input).toBeDisabled();
+
+    await addFiles(page, [TEA]);
+    await configureModel(page, { style: 'ollama', url: MODEL });
+    await expect(input).toBeEnabled();
+
+    // An empty question sends nothing.
+    await input.fill('   ');
+    await input.press('Enter');
+    expect(net.modelRequests.filter((r) => r.url.endsWith('/api/chat'))).toHaveLength(0);
+
+    net.modelReply = 'Because it is <b>steamed</b>.';
+    await input.fill('Why is green tea not oxidised?');
+    await input.press('Enter');
+    await expect(page.locator('#markdownDisplay h3').last()).toHaveText('Answer to: "Why is green tea not oxidised?"');
+    await expect(page.locator('#markdownDisplay b')).toHaveText('steamed');
+    await expect(input).toHaveValue('');
+    await expect(input).toBeFocused();
+
+    net.modelReply = 'Second answer.';
+    await input.fill('And black tea?');
+    await page.locator('#askBtn').click();
+    await expect(page.locator('#markdownDisplay h3').last()).toHaveText('Answer to: "And black tea?"');
+
+    const chats = net.modelRequests.filter((r) => r.url.endsWith('/api/chat'));
+    expect(chats).toHaveLength(2);
+    expect(chats[1].body.messages.map((m) => m.role)).toEqual(['user', 'user', 'assistant', 'user']);
+    expect(chats[1].body.messages[2].content).toBe('Because it is <b>steamed</b>.');
+    expect(chats[1].body.messages[3].content).toBe('And black tea?');
+});
+
+test('blocks a second question while one is being answered (P2-01)', async ({ page, net }) => {
+    await page.goto('/');
+    await addFiles(page, [TEA]);
+    await configureModel(page, { style: 'ollama', url: MODEL });
+
+    let release;
+    const held = new Promise((resolve) => { release = resolve; });
+    await page.context().route(`${MODEL}/api/chat`, async (route) => {
+        if (route.request().method() === 'OPTIONS') return route.fallback();
+        await held;
+        return route.fallback();
+    });
+    const input = page.locator('#askInput');
+    await input.fill('First?');
+    await input.press('Enter');
+    await expect(input).toBeDisabled();
+    await expect(page.locator('#askBtn')).toBeDisabled();
+    release();
+    await expect(page.locator('#markdownDisplay h3').last()).toHaveText('Answer to: "First?"');
+    await expect(input).toBeEnabled();
+    expect(net.modelRequests.filter((r) => r.url.endsWith('/api/chat'))).toHaveLength(1);
+});
