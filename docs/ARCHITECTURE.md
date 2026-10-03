@@ -29,7 +29,7 @@ All in `main.js`, in this order:
 | UI state | `updateUI()` | button enabled/disabled states |
 | File loading | `addFilesAndDisplay()`, `handleDirectoryScan()` | file input, `showDirectoryPicker` |
 | Display and history | `displayFile()`, `pickAndDisplayRandomFile()` | `state.history`, `state.chatHistory` |
-| AI | `callModel()`, `appendAiOutput()`, `askAboutCurrentFile()` (typed and suggested questions) | model server |
+| AI | `callModel()`, `appendAiOutput()`, `askAboutCurrentFile()` (typed and suggested questions), `startRequest()`/`isStale()` | model server |
 | Wiring | event listeners, `initialize()` | DOM |
 
 ## Interfaces and data flow
@@ -49,6 +49,8 @@ state -> JSON -> localStorage["chidiMdSession"] -> restored on next load
 
 ## Invariants
 
+- A model reply is shown only under the file view that asked for it (`state.viewId`). Enforced by: the P2-05
+  browser tests.
 - Every element ID `main.js` looks up exists exactly once in `index.html`. Enforced by: `tests/check_structure.py`.
 - All persisted data lives under one localStorage key. Enforced by: nothing yet (review only).
 - Rendered Markdown cannot run script: every `innerHTML` is a literal or `convertMarkdownToHtml()`, which runs

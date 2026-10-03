@@ -15,6 +15,8 @@ changes land.
   Choose it with the new **Model** button. API keys are gone, and a key saved by an older version is deleted.
 
 ### Fixed
+- An AI answer that arrives after you switch files is no longer shown under the wrong file; the status line says
+  it was dropped.
 - The Model list now opens and lets you pick any model. Models that cannot chat, such as embedding models, are
   shown but cannot be picked.
 - HTML inside a Markdown file or an AI reply can no longer run scripts on the page.

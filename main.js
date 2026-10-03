@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHistory: [],
         modelSettings: null,
         isAsking: false,
+        viewId: 0,
     };
 
     const defaultTitle = "chidi.md";
@@ -312,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const restartSession = () => {
         if (confirm("Are you sure you want to restart? This will clear all loaded files, history, and model settings.")) {
-            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', chatHistory: [], modelSettings: null, isAsking: false };
+            state = { loadedFiles: [], history: [], historyIndex: -1, currentDisplayedMarkdownContent: '', chatHistory: [], modelSettings: null, isAsking: false, viewId: state.viewId + 1 };
             localStorage.removeItem(SESSION_STORAGE_KEY);
             elements.markdownDisplay.innerHTML = '<p class="placeholder-text">Awaiting file selection...</p>';
             elements.mainTitle.textContent = defaultTitle;
@@ -365,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.currentDisplayedMarkdownContent = selectedFile.content;
         elements.markdownDisplay.innerHTML = convertMarkdownToHtml(state.currentDisplayedMarkdownContent);
         showMessage(`Displaying: ${selectedFile.name}`, 'info');
+        state.viewId++;
         state.chatHistory = [{
             role: "user",
             content: `I am currently viewing an article titled "${cleanFilename}". Its full content is:\n\n\`\`\`markdown\n${state.currentDisplayedMarkdownContent}\n\`\`\`\n\nWe can discuss this article.`
@@ -512,6 +514,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // Typed questions and suggested-question buttons share one conversation about the current file (P2-01).
+    // Model replies can take a minute. Each displayed file is a new view; a reply for an older view is dropped rather
+    // than shown under whatever is on screen now (P2-05).
+    const startRequest = () => ({ viewId: state.viewId, title: elements.mainTitle.textContent });
+    const isStale = (request) => {
+        if (request.viewId === state.viewId) return false;
+        showMessage(`The answer about "${request.title}" arrived after you moved on, so it was not shown.`, 'warn');
+        return true;
+    };
+
     const askAboutCurrentFile = async (question) => {
         if (state.isAsking || !question.trim()) return;
         const questionButtons = document.querySelectorAll('.question-button');
@@ -522,9 +533,13 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUI();
 
             showMessage("Getting answer...", "info");
-            state.chatHistory.push({ role: "user", content: question });
-            const answer = await callModel(state.chatHistory);
-            state.chatHistory.push({ role: "assistant", content: answer });
+            const request = startRequest();
+            // Keep this file's conversation even if another file is displayed before the answer arrives.
+            const history = state.chatHistory;
+            history.push({ role: "user", content: question });
+            const answer = await callModel(history);
+            history.push({ role: "assistant", content: answer });
+            if (isStale(request)) return;
             appendAiOutput(`Answer to: "${question}"`, answer);
             showMessage("Answer generated!", "success");
         } finally {
@@ -567,15 +582,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     elements.summarizeBtn.addEventListener('click', async () => {
+        const request = startRequest();
         const chat = [...state.chatHistory, { role: "user", content: "Summarize the current article concisely." }];
         const summary = await callModel(chat);
+        if (isStale(request)) return;
         appendAiOutput("Article Summary", summary);
     });
     
     elements.suggestQuestionsBtn.addEventListener('click', async () => {
         const prompt = "Directly provide a list of 3-4 thought-provoking questions based on the article. Each question must end with a question mark.";
+        const request = startRequest();
         const chat = [...state.chatHistory, { role: "user", content: prompt }];
         const questions = await callModel(chat);
+        if (isStale(request)) return;
         appendAiOutput("Suggested Questions", questions);
     });
 
@@ -590,7 +609,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let combinedContent = "You have access to the following documents:\n\n";
         state.loadedFiles.forEach(file => { combinedContent += `--- DOCUMENT: ${file.name} ---\n${file.content}\n\n`; });
         const prompt = `${combinedContent}Based on all the documents provided, please answer the following question: ${userQuestion}`;
+        const request = startRequest();
         const answer = await callModel([{ role: 'user', content: prompt }]);
+        if (isStale(request)) return;
         appendAiOutput(`Answer based on all files`, answer);
     });
     

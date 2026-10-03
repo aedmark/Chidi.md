@@ -291,3 +291,62 @@ test('blocks a second question while one is being answered (P2-01)', async ({ pa
     await expect(input).toBeEnabled();
     expect(net.modelRequests.filter((r) => r.url.endsWith('/api/chat'))).toHaveLength(1);
 });
+
+// Holds model replies until release() is called, so a test can act while an answer is pending.
+const holdModelReplies = async (page) => {
+    let release;
+    const held = new Promise((resolve) => { release = resolve; });
+    await page.context().route(/\/(api\/chat|chat\/completions)$/, async (route) => {
+        if (route.request().method() !== 'OPTIONS') await held;
+        return route.fallback();
+    });
+    return () => release();
+};
+
+for (const [action, trigger] of [
+    ['a typed question', async (page) => { await page.locator('#askInput').fill('Why?'); await page.locator('#askInput').press('Enter'); }],
+    ['Summarize', (page) => page.locator('#summarizeBtn').click()],
+    ['Suggest', (page) => page.locator('#suggestQuestionsBtn').click()],
+]) {
+    test(`drops ${action} answered after switching files (P2-05)`, async ({ page, net }) => {
+        await page.goto('/');
+        await addFiles(page, [TEA, COFFEE]);
+        await configureModel(page, { style: 'ollama', url: MODEL });
+        net.modelReply = 'Late answer about tea?';
+        const release = await holdModelReplies(page);
+
+        await trigger(page);
+        await page.locator('#nextBtn').click();
+        await expect(page.locator('#mainTitle')).toHaveText('coffee');
+        release();
+
+        await expect(page.locator('#messageBox')).toContainText('The answer about "tea" arrived after you moved on');
+        await expect(page.locator('#markdownDisplay h3')).toHaveCount(0);
+        await expect(page.locator('#markdownDisplay')).not.toContainText('Late answer');
+
+        // The coffee conversation does not inherit the tea question or its answer.
+        net.modelReply = 'Coffee answer.';
+        await page.locator('#askInput').fill('About coffee?');
+        await page.locator('#askInput').press('Enter');
+        await expect(page.locator('#markdownDisplay h3')).toHaveText('Answer to: "About coffee?"');
+        const last = net.modelRequests.filter((r) => r.url.endsWith('/api/chat')).at(-1).body.messages;
+        expect(last.map((m) => m.role)).toEqual(['user', 'user']);
+        expect(last[0].content).toContain('Arabica');
+    });
+}
+
+test('drops an Ask All answer after a restart (P2-05)', async ({ page, net }) => {
+    await page.goto('/');
+    await addFiles(page, [TEA, COFFEE]);
+    await configureModel(page, { style: 'ollama', url: MODEL });
+    const release = await holdModelReplies(page);
+    await page.locator('#askAllFilesBtn').click();
+    await page.locator('#inputModalField').fill('Which drinks?');
+    await page.locator('#confirmInputBtn').click();
+    await page.locator('#restartSessionBtn').click();
+    await expect(page.locator('#fileCountDisplay')).toHaveText('FILES: 0');
+    release();
+    await expect(page.locator('#messageBox')).toContainText('arrived after you moved on');
+    await expect(page.locator('#markdownDisplay h3')).toHaveCount(0);
+    expect(net.modelRequests.length).toBeGreaterThan(0);
+});
