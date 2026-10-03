@@ -46,8 +46,13 @@ Goal: reading and chatting feel reliable.
 - [ ] P2-01 Free-text follow-up questions on the current file (today only suggested-question buttons exist).
 - [ ] P2-02 Show a clear message when `localStorage` is full instead of failing silently on Save.
 - [ ] P2-03 Warn before "Ask All" when the combined files are likely to exceed the model's context.
-- [ ] P2-04 List Models picks the first model, which can be an embedding model (e.g. `nomic-embed-text`) that cannot
-  chat. Prefer a chat-capable model or leave the field empty. Found in P1-06 testing (2026-10-03).
+- [x] P2-04 Model picker: the Model field is now a `<select>` filled from the server when the dialog opens, when the
+  type or URL changes, and on Refresh List. Models that cannot chat (Ollama `/api/show` capabilities; `embed` in the
+  name for OpenAI-compatible) are listed last, disabled, and never preselected; the saved model stays selected.
+  Also fixes the maintainer's report that the old field only ever offered the first model (a `<datalist>` filters to
+  entries matching the text already in the field). Evidence: new browser test, both APIs, Chromium and Firefox,
+  fails on the old code; against a real Ollama, 8 chat models listed, `nomic-embed-text` disabled, keyboard pick of
+  a second model works (2026-10-03). Not seen: the native dropdown popup itself (not in screenshots).
 
 ## Phase 3: Output / sharing
 

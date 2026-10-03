@@ -40,13 +40,16 @@ const routeAll = async (page) => {
             net.modelRequests.push({ url, body });
             const { pathname } = new URL(url);
             const json = {
-                '/api/tags': { models: [{ name: 'stub-chat' }] },
-                '/v1/models': { data: [{ id: 'stub-chat' }] },
+                '/api/tags': { models: [{ name: 'stub-embed' }, { name: 'stub-chat' }, { name: 'other-chat' }] },
+                '/api/show': { capabilities: body?.model === 'stub-embed' ? ['embedding'] : ['completion'] },
+                '/v1/models': { data: [{ id: 'stub-embed' }, { id: 'stub-chat' }, { id: 'other-chat' }] },
                 '/api/chat': { message: { role: 'assistant', content: net.modelReply } },
                 '/v1/chat/completions': { choices: [{ message: { role: 'assistant', content: net.modelReply } }] },
             }[pathname];
             return json ? route.fulfill({ json, headers: CORS }) : route.fulfill({ status: 404, headers: CORS });
         }
+        // Other local ports are allowed (D-007) but have no server, like a model server that is not running.
+        if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]):/.test(url)) return route.abort('connectionrefused');
         if (/fonts\.(googleapis|gstatic)\.com/.test(url)) return route.abort();
         net.outside.push(url);
         return route.abort();
@@ -67,13 +70,13 @@ const test = base.extend({
 
 const addFiles = (page, files) => page.locator('#mdFileInput').setInputFiles(files);
 
-const configureModel = async (page, { style, url }) => {
+const configureModel = async (page, { style, url, model = 'stub-chat' }) => {
     await page.locator('#modelSettingsBtn').click();
     await page.locator('#modelApiStyle').selectOption(style);
     await page.locator('#modelBaseUrl').fill(url);
     await page.locator('#fetchModelsBtn').click();
-    await expect(page.locator('#modelSettingsError')).toHaveText('Found 1 model(s).');
-    await expect(page.locator('#modelName')).toHaveValue('stub-chat');
+    await expect(page.locator('#modelSettingsError')).toHaveText('Found 2 chat model(s).');
+    await page.locator('#modelName').selectOption(model);
     await page.locator('#saveModelSettingsBtn').click();
     await expect(page.locator('#modelSettingsModal')).toBeHidden();
 };
@@ -126,7 +129,6 @@ test('refuses a non-local model URL (D-007)', async ({ page, net }) => {
     await page.goto('/');
     await page.locator('#modelSettingsBtn').click();
     await page.locator('#modelBaseUrl').fill('https://api.example.com/v1');
-    await page.locator('#modelName').fill('anything');
     await page.locator('#fetchModelsBtn').click();
     await expect(page.locator('#modelSettingsError')).toContainText('Only localhost');
     await page.locator('#saveModelSettingsBtn').click();
@@ -203,3 +205,32 @@ test('removes a Gemini key saved by an older version (D-007)', async ({ page, ne
     await expect(page.locator('#modelSettingsModal')).toBeVisible();
     await expect(page.locator('#modelBaseUrl')).toHaveValue(MODEL);
 });
+
+for (const [style, url] of [['ollama', MODEL], ['openai', `${MODEL}/v1`]]) {
+    test(`lists models, skips ones that cannot chat, and uses the one picked (P2-04, ${style})`, async ({ page, net }) => {
+        await page.goto('/');
+        await addFiles(page, [TEA]);
+        await page.locator('#modelSettingsBtn').click();
+        await page.locator('#modelApiStyle').selectOption(style);
+        await page.locator('#modelBaseUrl').fill(url);
+        await page.locator('#fetchModelsBtn').click();
+        await expect(page.locator('#modelSettingsError')).toHaveText('Found 2 chat model(s).');
+
+        const select = page.locator('#modelName');
+        await expect(select).toHaveValue('stub-chat');
+        await expect(select.locator('option')).toHaveText(['stub-chat', 'other-chat', 'stub-embed (cannot chat)']);
+        await expect(select.locator('option[value="stub-embed"]')).toBeDisabled();
+
+        await select.selectOption('other-chat');
+        await page.locator('#saveModelSettingsBtn').click();
+        await page.locator('#summarizeBtn').click();
+        await expect(page.locator('#markdownDisplay h3')).toHaveText('Article Summary');
+        const chat = net.modelRequests.find((r) => /\/(api\/chat|chat\/completions)$/.test(r.url));
+        expect(chat.body.model).toBe('other-chat');
+
+        // Reopening keeps the saved choice rather than jumping back to the first model.
+        await page.locator('#modelSettingsBtn').click();
+        await expect(page.locator('#modelSettingsError')).toHaveText('Found 2 chat model(s).');
+        await expect(select).toHaveValue('other-chat');
+    });
+}
