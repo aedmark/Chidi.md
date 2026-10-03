@@ -13,7 +13,7 @@ Results live in HANDOFF's "Verified" table; this file is how to get them.
 | Manual smoke | below | A person's path through the app works in one browser | Other browsers; AI answer quality | 5 minutes, Chromium, optional local model (Ollama) |
 
 **The fast set** (before every commit): `python3 tests/check_structure.py && python3 tools/check_docs.py`.
-**Before merging code to `main`:** fast set plus the browser smoke.
+**Before merging code to `main`:** fast set plus the browser smoke, locally and in CI on the pushed branch.
 **The full set** (after deleting or moving code, and before a release): both, plus the manual smoke.
 
 ## Before any run
@@ -48,6 +48,13 @@ cd tests/e2e && npm ci && npm test
 - Any request to another host fails the test (the `net` fixture). Google Fonts are aborted silently.
 - A pass ends with `16 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
 - Writes `test-results/` on failure (gitignored).
+
+### CI
+
+`.github/workflows/checks.yml` runs two jobs on every push and pull request: "Structure and docs" and "Browser
+smoke (Chromium, Firefox)". Follow a run with `gh run list --limit 3` and `gh run watch <id> --exit-status`. On
+failure, the `playwright-results` artifact holds traces and screenshots for 7 days. A failing browser run takes
+about 3 minutes longer than a passing one, because each failed assertion waits out its timeout.
 
 ### Manual smoke
 
