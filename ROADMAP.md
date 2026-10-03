@@ -60,7 +60,10 @@ Goal: reading and chatting feel reliable.
   and Firefox, offline: CDN files from `node_modules` (same SRI bytes), stub model, any other request fails the
   test. Evidence: 16/16 pass; removing DOMPurify, the text heading, the local-URL check, or the key cleanup each
   fails its test (2026-10-03). Not covered: Scan Folder (needs a native picker).
-- [ ] P4-02 Run the fast checks in CI on every push.
+- [x] P4-02 GitHub Actions (`.github/workflows/checks.yml`) runs the fast checks and the browser smoke on every push
+  and pull request; actions pinned to commit SHAs; Playwright results uploaded on failure. Evidence: green run
+  37134115368 (16 passed); a commit renaming one element ID failed both jobs, run 37134197807, then reverted
+  (2026-10-03).
 - [ ] P4-03 Keyboard navigation and focus handling for modals and question buttons.
 
 ## Phase 5: Later / only if wanted

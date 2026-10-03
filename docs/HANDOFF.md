@@ -12,11 +12,12 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 5, on `main`: P4-01 browser smoke suite merged._
+_Last updated: 2026-10-03, session 6, on `main`: P4-02 CI merged._
 
 **Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
 pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. P4-01 adds an offline
-Playwright suite in Chromium and Firefox. The biggest gaps: no CI (P4-02), and Scan Folder is only manually tested.
+Playwright suite in Chromium and Firefox. CI runs both on every push
+(P4-02). The biggest gap: Scan Folder is only manually tested.
 
 **Verified** (2026-10-03, on `main` after the P1-06 merge, Linux, Python 3, Chromium in the Claude desktop app,
 Ollama on port 11434 with `llama3.1:8b`)
@@ -26,6 +27,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
 | `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **16/16**; each of 4 fixes removed fails its test |
+| GitHub Actions `checks` | green on the P4-02 branch; a broken element ID failed both jobs |
 | Hostile Markdown (TESTING.md), session 4 | with fix: payload stripped, nothing ran; fix removed: `onerror` ran (test can fail) |
 | Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
 | Old session with `apiKey` | restored; key and Gemini chat removed from storage |
@@ -40,14 +42,14 @@ Ollama on port 11434 with `llama3.1:8b`)
 - Ask All against a live model; a real llama.cpp or LM Studio server; Scan Folder; Safari.
 
 **Gotchas for the next session**
-- Agents merge and push their own branches (D-009).
+- Agents merge and push their own branches after branch CI is green (D-009).
 - List Models fills in the first model, which on this machine is not a chat model in every case (P2-04).
 - Large local models can take a minute per reply; wait for the loader rather than retrying.
 
 ## Next steps (in order)
 
-1. P4-02: run the fast checks and browser smoke in CI.
-2. P2-04, then P2-01 (free-text follow-ups).
+1. P2-04, then P2-01 (free-text follow-ups).
+2. P4-03: keyboard and focus handling.
 3. P6-02: tag `v0.2.0` now that Phase 1 is done (D-005).
 
 ## Open questions for maintainers
@@ -57,6 +59,21 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 6: 2026-10-03: CI
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P4-02.
+**Done:** P4-02.
+**Changed:** added `.github/workflows/checks.yml`; AGENTS (CI row, merge waits for green CI), TESTING, D-009 note.
+**Decisions:** D-009 update: merges wait for branch CI.
+**Verified:** run 37134115368 green (fast 4 s, browser 57 s, 16 passed). A pushed commit renaming `fileCountDisplay`
+failed both jobs (structure check error; 12 of 16 browser tests), and the artifact uploaded; reverted with a new commit.
+**Not verified:** pull-request trigger (no PR opened).
+**Problems / surprises:** GitHub warns `ubuntu-latest` moves to Ubuntu 26 from 2026-10-19.
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P2-04.
 
 ### Session 5: 2026-10-03: Playwright browser smoke
 

@@ -49,8 +49,8 @@ decision, changelog entry, or handoff rewrite unless they alter a claim those do
 
 Agent-merged branch workflow (D-009).
 
-- Default branch: `main`. Agents work on a branch per roadmap item, then merge it to `main` (`--no-ff`) and push once
-  the fast checks pass and the docs are updated.
+- Default branch: `main`. Agents work on a branch per roadmap item, push it, and merge it to `main` (`--no-ff`) once
+  the branch's CI run is green and the docs are updated.
 - Docs-only changes may be committed straight to `main` (D-009).
 - Working branch pattern: `feature/<roadmap-id>-<topic>` or `fix/<topic>`.
 - Commit format: imperative subject line, roadmap ID in the subject when one exists (`P1-01: sanitise rendered HTML`).
@@ -109,6 +109,7 @@ Record durable preferences here so they survive agent and session changes.
 | `tools/check_docs.py` | Documentation consistency checks |
 | `tests/check_structure.py` | Checks that every element ID `main.js` uses exists in `index.html` |
 | `tests/e2e/` | Playwright browser smoke tests (D-008); dev-only, its own `package.json` |
+| `.github/workflows/checks.yml` | CI: fast checks and browser smoke on every push |
 | `.claude/skills/` | `/session-start` and `/session-end` workflow skills |
 
 ## Engineering conventions
@@ -127,7 +128,7 @@ Record durable preferences here so they survive agent and session changes.
 | Environment | Can access | Cannot access / caveats |
 | --- | --- | --- |
 | Local development | A browser on `http://localhost:8000` via `python3 -m http.server`; the CDN; a local Ollama or OpenAI-compatible server if running | `file://` disables Scan Folder; the model server must allow the page's origin (CORS) |
-| CI | None yet (P4-02) | |
+| CI (GitHub Actions, `.github/workflows/checks.yml`) | Ubuntu, Python 3, Node 22, Playwright Chromium and Firefox | No model server, no secrets; `gh run watch` to follow a run |
 | Playwright (`tests/e2e`) | Node 22, cached Chromium and Firefox; no network needed | Scan Folder cannot be automated |
 
 ## Run and verify

@@ -89,6 +89,7 @@ checks pass and the docs are updated. Force-pushes and history rewrites still ne
 **Consequences:** No review point before `main`; the merge commit and HANDOFF session log are the record.
 **Review trigger:** A bad merge reaches `main`, or CI exists (P4-02).
 Update 2026-10-03: docs-only changes may go straight to `main`, without a branch (maintainer).
+Update 2026-10-03: CI exists (P4-02). Merges now wait for a green CI run on the branch; otherwise unchanged.
 
 ## Open questions
 
