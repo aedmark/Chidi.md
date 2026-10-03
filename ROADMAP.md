@@ -55,7 +55,11 @@ Goal: reading and chatting feel reliable.
 
 ## Phase 4: Quality: robustness, accessibility, automation
 
-- [ ] P4-01 Playwright smoke test (D-008) for load, PREV/NEXT, save and restore, with a stubbed local model endpoint.
+- [x] P4-01 Playwright smoke test (D-008), `tests/e2e/`: 8 tests (load, duplicates, PREV/NEXT, save/restore/restart,
+  hostile Markdown, non-local URL refused, Ollama and OpenAI-compatible calls, Ask All, old-key cleanup) in Chromium
+  and Firefox, offline: CDN files from `node_modules` (same SRI bytes), stub model, any other request fails the
+  test. Evidence: 16/16 pass; removing DOMPurify, the text heading, the local-URL check, or the key cleanup each
+  fails its test (2026-10-03). Not covered: Scan Folder (needs a native picker).
 - [ ] P4-02 Run the fast checks in CI on every push.
 - [ ] P4-03 Keyboard navigation and focus handling for modals and question buttons.
 

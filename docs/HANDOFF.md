@@ -12,11 +12,11 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 4, on `main`: hostile-Markdown test seen failing without the fix._
+_Last updated: 2026-10-03, session 5, on `main`: P4-01 browser smoke suite merged._
 
 **Where things stand, in one paragraph:** Phase 0 and Phase 1 are done: rendering is sanitised, CDN scripts are
-pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. The biggest gap: no
-automated browser test (P4-01).
+pinned, and AI runs only on a local Ollama or OpenAI-compatible server with no API keys. P4-01 adds an offline
+Playwright suite in Chromium and Firefox. The biggest gaps: no CI (P4-02), and Scan Folder is only manually tested.
 
 **Verified** (2026-10-03, on `main` after the P1-06 merge, Linux, Python 3, Chromium in the Claude desktop app,
 Ollama on port 11434 with `llama3.1:8b`)
@@ -25,6 +25,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
+| `cd tests/e2e && npm test` (Playwright 1.63.0, Chromium + Firefox) | **16/16**; each of 4 fixes removed fails its test |
 | Hostile Markdown (TESTING.md), session 4 | with fix: payload stripped, nothing ran; fix removed: `onerror` ran (test can fail) |
 | Manual smoke step 6, Ollama and OpenAI-compatible (`/v1`) | Summarize, Suggest, follow-up all answered; remote URL refused |
 | Old session with `apiKey` | restored; key and Gemini chat removed from storage |
@@ -36,7 +37,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 - **Sessions** (D-003). Save, restore on load, restart; model settings included.
 
 **Not verified**
-- Ask All against a live model; a real llama.cpp or LM Studio server; Firefox; the full manual smoke.
+- Ask All against a live model; a real llama.cpp or LM Studio server; Scan Folder; Safari.
 
 **Gotchas for the next session**
 - Agents merge and push their own branches (D-009).
@@ -45,7 +46,7 @@ Ollama on port 11434 with `llama3.1:8b`)
 
 ## Next steps (in order)
 
-1. P4-01: Playwright smoke test with a stubbed model endpoint (D-008).
+1. P4-02: run the fast checks and browser smoke in CI.
 2. P2-04, then P2-01 (free-text follow-ups).
 3. P6-02: tag `v0.2.0` now that Phase 1 is done (D-005).
 
@@ -56,6 +57,23 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 5: 2026-10-03: Playwright browser smoke
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P4-01.
+**Done:** P4-01; D-009 note that docs-only changes may go to `main`.
+**Changed:** added `tests/e2e/` (`package.json`, lockfile, `playwright.config.js`, `smoke.spec.js`, `.gitignore`);
+AGENTS, TESTING, ARCHITECTURE, CONTRIBUTING updated.
+**Decisions:** none new (D-008).
+**Verified:** 16/16 in Chromium and Firefox. Mutations, one at a time, each failing its intended test: no DOMPurify;
+heading via `innerHTML`; local-URL check always true; `apiKey` not deleted. `main.js` restored after each.
+**Not verified:** Scan Folder; Safari.
+**Problems / surprises:** the npm copies of `marked` and DOMPurify are byte-identical to jsDelivr's, so SRI works
+offline.
+**Corrections:** none.
+**Left undone:** none.
+**Next session should start with:** P4-02.
 
 ### Session 4: 2026-10-03: hostile-Markdown mutation check
 

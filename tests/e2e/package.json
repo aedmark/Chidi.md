@@ -1,0 +1,14 @@
+{
+  "name": "chidi-md-e2e",
+  "version": "1.0.0",
+  "description": "Browser smoke tests for Chidi.md (D-008); not part of the app",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "dompurify": "3.4.16",
+    "marked": "18.0.14"
+  },
+  "private": true
+}
