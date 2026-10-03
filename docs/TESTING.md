@@ -20,7 +20,7 @@ Results live in HANDOFF's "Verified" table; this file is how to get them.
 
 - **Clean state:** use a fresh browser profile or click Restart. A saved session restores files, history and model, so
   a leftover session can make a broken load path look fine.
-- **Serve over HTTP:** `python3 -m http.server 8000` from the repo root. `file://` disables Scan Folder.
+- **Serve over HTTP:** `python3 tools/serve.py` (or `python3 -m http.server 8000` from the repo root). `file://` disables Scan Folder.
 - **Model:** run Ollama (`ollama serve`; it allows `http://localhost:*` origins by default) with a small chat model
   such as `llama3.1:8b`. Ollama's `/v1` stands in for an OpenAI-compatible server. Without a model, test only the
   non-AI steps and say so.

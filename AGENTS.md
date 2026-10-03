@@ -107,6 +107,7 @@ Record durable preferences here so they survive agent and session changes.
 | `docs/CHANGELOG.md` | User-visible release notes |
 | `docs/archive/` | Historical material no longer current |
 | `tools/check_docs.py` | Documentation consistency checks |
+| `tools/serve.py` | Serves the app on localhost and opens it in Chrome |
 | `tests/check_structure.py` | Checks that every element ID `main.js` uses exists in `index.html` |
 | `tests/e2e/` | Playwright browser smoke tests (D-008); dev-only, its own `package.json` |
 | `.github/workflows/checks.yml` | CI: fast checks and browser smoke on every push |
@@ -134,7 +135,7 @@ Record durable preferences here so they survive agent and session changes.
 ## Run and verify
 
 - Setup: none to run the app. For browser tests: `cd tests/e2e && npm ci && npx playwright install chromium firefox`.
-- Run: `python3 -m http.server 8000`, then open `http://localhost:8000`.
+- Run: `python3 tools/serve.py` (serves on `http://localhost:8000` and opens Chrome; `--no-browser` to serve only).
 - Fast checks: `python3 tests/check_structure.py && python3 tools/check_docs.py`.
 - Full checks: fast checks, then `cd tests/e2e && npm test`, then the manual checks in `docs/TESTING.md`.
 - Detailed test guidance: `docs/TESTING.md`.
