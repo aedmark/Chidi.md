@@ -95,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const getApiUrl = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`;
-    const convertMarkdownToHtml = (markdownText) => marked.parse(markdownText);
+    // File content and model replies are untrusted: sanitise every render (D-006).
+    const convertMarkdownToHtml = (markdownText) => DOMPurify.sanitize(marked.parse(markdownText));
     const showMessage = (message, type = 'info') => {
         elements.messageBox.textContent = `SYSTEM LOG: ${message}`;
         console[type === 'error' ? 'error' : (type === 'warn' ? 'warn' : 'info')](message);
@@ -327,7 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const appendAiOutput = (title, content) => {
         const container = document.createElement('div');
-        container.innerHTML = `<hr><h3>${title}</h3>`;
+        // The title can contain model-suggested text, so it is set as text, never as HTML (P1-02).
+        const heading = document.createElement('h3');
+        heading.textContent = title;
+        container.append(document.createElement('hr'), heading);
         const contentBody = document.createElement('div');
         if (title.startsWith("Suggested Questions")) {
             content.split('\n').filter(line => line.trim().endsWith('?')).forEach(q => {

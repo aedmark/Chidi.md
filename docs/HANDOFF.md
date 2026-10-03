@@ -12,34 +12,36 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 1, on `main`: agent workflow docs, checks and session skills committed and pushed;
-app code unchanged; `agent-template/` removed._
+_Last updated: 2026-10-03, session 2, on `feature/P1-01-sanitise-html` (not merged): DOMPurify, pinned CDN scripts._
 
 **Where things stand, in one paragraph:** The app works as released on 2025-07-17. Phase 0 (workflow) is done. All open
-questions are answered (D-004 to D-008). The code still uses Gemini with a stored key and renders unsanitised HTML;
-Phase 1 (DOMPurify, local models only) fixes both. There is no automated browser test yet.
+questions are answered (D-004 to D-008). Rendering is sanitised (P1-01, P1-02, P1-04, on the branch). The code still
+uses Gemini with a stored key until P1-06. There is no automated browser test yet.
 
-**Verified** (2026-10-03, on the session-1 commit, Linux, Python 3)
+**Verified** (2026-10-03, on the session-2 branch, Linux, Python 3, Chromium in the Claude desktop app)
 
 | Suite | Result |
 | --- | --- |
 | `python3 tests/check_structure.py` | **0 errors** |
 | `python3 tools/check_docs.py` | **0 errors** |
+| Hostile Markdown (TESTING.md) | img onerror, script, javascript: link all stripped |
 
 **What works** (from reading the code, not run this session)
+- **Safe rendering** (D-006). Raw HTML in files and replies is sanitised.
 - **Reading** (`main.js` file loading and display). Add files or scan a folder; PREV/NEXT; duplicate files skipped.
 - **AI** (D-002, superseded by D-007; code not yet changed). Summarize, Suggest, follow-up on suggested questions, Ask All.
 - **Sessions** (D-003). Save, restore on load, restart.
 
 **Not verified**
-- The manual smoke has not been run this session; nothing has been run in Firefox.
+- The manual smoke has not been run; nothing has been run in Firefox.
+- Hostile-Markdown test not run without the fix (the temporary revert was blocked by the agent's permissions).
 
 **Gotchas for the next session**
 - Direct pushes to `main` were a one-time permission for session 1 (D-004); use a branch from now on.
 
 ## Next steps (in order)
 
-1. P1-01 and P1-04: add DOMPurify and pin both CDN scripts with SRI; P1-02 alongside.
+1. Maintainer: review and merge `feature/P1-01-sanitise-html`.
 2. P1-06: replace Gemini with a local Ollama / OpenAI-compatible provider.
 3. P4-01: Playwright smoke test with a stubbed model endpoint.
 
@@ -50,6 +52,22 @@ None open.
 ## Session log
 
 Newest first. Past 10 entries, move the oldest to `docs/archive/`.
+
+### Session 2: 2026-10-03: sanitise rendered HTML
+
+**Contributor:** Claude Code (Opus 5.5)
+**Goal:** P1-01, P1-02, P1-04 on a branch.
+**Done:** P1-01, P1-02, P1-04
+**Changed:** `index.html` loads `marked` 18.0.14 and DOMPurify 3.4.16 with SRI; `main.js` sanitises in
+`convertMarkdownToHtml` and builds AI headings as text; `tests/check_structure.py` checks `innerHTML` sources and CDN
+pinning; `.claude/launch.json` serves the app on port 8000.
+**Decisions:** none new (D-006).
+**Verified:** fast checks 0 errors; structure check fails on the pre-change files; hostile Markdown stripped in Chromium.
+**Not verified:** hostile Markdown without the fix; manual smoke; live AI replies; Firefox.
+**Problems / surprises:** `marked` 18 has no `marked.min.js`; the UMD build is `lib/marked.umd.js`.
+**Corrections:** none.
+**Left undone:** merge (maintainer).
+**Next session should start with:** P1-06.
 
 ### Session 1: 2026-10-03: adopt the agent workflow
 

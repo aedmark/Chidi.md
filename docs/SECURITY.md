@@ -20,11 +20,11 @@ API keys or personal documents.
 | Asset or boundary | Sensitivity / threat | Protection and validation | Owner |
 | --- | --- | --- | --- |
 | Gemini API key (being removed) | Billing abuse if stolen | Stored in `localStorage` and sent in the URL today; removed entirely by P1-06 (D-007) | `main.js` |
-| User's Markdown files | Personal notes; may contain hostile HTML | Rendered unsanitised today (P1-01); sent to Google today; only to a local server after P1-06 | `main.js` |
-| Model replies | Can contain HTML or prompt-injected content from a file | Rendered unsanitised today (P1-01, P1-02) | `main.js` |
-| CDN scripts | A compromised CDN has full page access, including the key and documents | Unpinned today (P1-04) | `index.html` |
+| User's Markdown files | Personal notes; may contain hostile HTML | Sanitised with DOMPurify (D-006); sent to Google today; only to a local server after P1-06 | `main.js` |
+| Model replies | Can contain HTML or prompt-injected content from a file | Sanitised with DOMPurify; titles set as text | `main.js` |
+| CDN scripts | A compromised CDN has full page access, including the key and documents | Exact versions with SRI; checked by `tests/check_structure.py` | `index.html` |
 
-Until P1-06 lands, any script injection (P1-01, P1-02, P1-04) means key theft. After it, injection can still read
+Until P1-06 lands, any script injection means key theft. After it, injection can still read
 the user's documents and call the local model server, so DOMPurify stays required (D-006).
 Architecture details are in [ARCHITECTURE.md](ARCHITECTURE.md).
 

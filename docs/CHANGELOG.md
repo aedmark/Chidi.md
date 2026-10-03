@@ -7,6 +7,9 @@ changes land.
 
 <!-- Keep only headings that contain entries. -->
 
+### Fixed
+- HTML inside a Markdown file or an AI reply can no longer run scripts on the page.
+
 ## 2025-07-17
 
 ### Added
