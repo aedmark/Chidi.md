@@ -51,6 +51,7 @@ Agent-merged branch workflow (D-009).
 
 - Default branch: `main`. Agents work on a branch per roadmap item, then merge it to `main` (`--no-ff`) and push once
   the fast checks pass and the docs are updated.
+- Docs-only changes may be committed straight to `main` (D-009).
 - Working branch pattern: `feature/<roadmap-id>-<topic>` or `fix/<topic>`.
 - Commit format: imperative subject line, roadmap ID in the subject when one exists (`P1-01: sanitise rendered HTML`).
 - Release/version scheme: semver git tags plus matching changelog headings; not shown in the UI or README (D-005).
