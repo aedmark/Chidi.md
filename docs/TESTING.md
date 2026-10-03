@@ -7,7 +7,7 @@ Results live in HANDOFF's "Verified" table; this file is how to get them.
 
 | Suite | File | Proves | Does not prove | Time, needs |
 | --- | --- | --- | --- | --- |
-| Structure | `tests/check_structure.py` | Every ID `main.js` looks up exists once in `index.html`; local assets exist | That anything runs | under a second, Python 3 |
+| Structure | `tests/check_structure.py` | Every ID `main.js` looks up exists once in `index.html`; local assets exist; `innerHTML` only from sanitised renders; CDN scripts pinned with SRI | That anything runs | under a second, Python 3 |
 | Docs | `tools/check_docs.py` | Doc links, roadmap IDs, decisions and questions are consistent | That the docs are true | under a second, Python 3 |
 | Manual smoke | below | A person's path through the app works in one browser | Other browsers; AI answer quality | 5 minutes, Chromium, optional local model |
 
@@ -43,6 +43,12 @@ python3 tests/check_structure.py && python3 tools/check_docs.py
 5. Save, reload the page, choose Restore: same files and current file.
 6. With a key: Summarize, Suggest, click a suggested question, Ask All. Each appends a section below the file.
 7. Restart: everything clears, reload shows no restore prompt.
+
+### Hostile Markdown (after touching rendering)
+
+In the browser console, save a session whose one file contains `<img src=x onerror=alert(1)>`, a `<script>` and
+a `[x](javascript:alert(1))` link under the `chidiMdSession` key, reload, restore, and inspect `#markdownDisplay`:
+none of the three may survive. Restart afterwards.
 
 ### Adding a check
 

@@ -50,17 +50,18 @@ state -> JSON -> localStorage["chidiMdSession"] -> restored on next load
 
 - Every element ID `main.js` looks up exists exactly once in `index.html`. Enforced by: `tests/check_structure.py`.
 - All persisted data lives under one localStorage key. Enforced by: nothing yet (review only).
-- Rendered Markdown cannot run script. Enforced by: **nothing; currently false** (P1-01, D-006).
+- Rendered Markdown cannot run script: every `innerHTML` is a literal or `convertMarkdownToHtml()`, which runs
+  DOMPurify. Enforced by: `tests/check_structure.py` (D-006).
 - No build step; the repository is servable as-is (D-001). Enforced by: nothing (convention).
 
 ## Boundaries
 
 | Boundary | Comes in as | Checked by | Rule |
 | --- | --- | --- | --- |
-| User's Markdown files | text from File / directory handles | only the `.md` suffix | Untrusted: rendered via `marked` into `innerHTML` unsanitised today (P1-01) |
-| Gemini reply | JSON | optional chaining on `candidates[0]` | Untrusted: rendered via `marked` into `innerHTML` (P1-01, P1-02) |
+| User's Markdown files | text from File / directory handles | only the `.md` suffix | Untrusted: `marked`, then DOMPurify (D-006) |
+| Gemini reply | JSON | optional chaining on `candidates[0]` | Untrusted: `marked`, then DOMPurify; headings as text |
 | API key | text from the input modal | non-empty | Sent in the URL query and stored in `localStorage`; removed by P1-06 |
-| CDN scripts | `marked` from jsDelivr, unpinned | nothing | Full page trust (P1-04) |
+| CDN scripts | `marked`, DOMPurify from jsDelivr | SRI hashes | Pinned versions only |
 
 ## Dependencies
 
@@ -68,7 +69,8 @@ A new one needs maintainer approval; record it here the same session.
 
 | Dependency | Version | For | Why this one |
 | --- | --- | --- | --- |
-| `marked` | unpinned, latest from jsDelivr | Markdown to HTML | Small, fast, no build (D-001); pin in P1-04 |
+| `marked` | 18.0.14, jsDelivr, SRI | Markdown to HTML | Small, fast, no build (D-001) |
+| DOMPurify | 3.4.16, jsDelivr, SRI | Sanitising rendered HTML | D-006 |
 | Google Fonts: Space Mono, VT323 | n/a | Console look | Style only |
 | Gemini API | `gemini-2.5-flash`, `v1beta` | All AI features | D-002; replaced by P1-06 (D-007) |
 

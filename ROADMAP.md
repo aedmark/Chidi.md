@@ -21,12 +21,15 @@ Goal: the repository carries its own project memory and a minimal enforced check
 Goal: untrusted Markdown and model output cannot run script, and the API key stops leaking. Source: code review
 during P0-01 (2026-10-03).
 
-- [ ] P1-01 Sanitise rendered HTML (file content and model replies) with DOMPurify before `innerHTML` (D-006). Done
-  when a `.md` file containing `<img src=x onerror=alert(1)>` renders without running script.
-- [ ] P1-02 Build the "Answer to: …" heading with `textContent`, not string-interpolated `innerHTML`
-  (`appendAiOutput`). Done when a model-suggested question containing HTML shows as text.
+- [x] P1-01 Sanitise rendered HTML (file content and model replies) with DOMPurify before `innerHTML` (D-006).
+  `convertMarkdownToHtml` sanitises every render; `tests/check_structure.py` rejects any other `innerHTML` source.
+  Evidence: a restored session with `<img onerror>`, `<script>` and a `javascript:` link renders with all three
+  stripped, Chromium via the in-app browser (2026-10-03). Not done: the run without the fix, to see it fail.
+- [x] P1-02 Build the AI output heading with `textContent` (`appendAiOutput`). Evidence: the structure check flags
+  the old template-string `innerHTML` and passes on the new code (2026-10-03). Not seen with a live model reply.
 - [-] P1-03 Send the Gemini key in a header instead of the URL (dropped, D-007: Gemini and API keys are removed).
-- [ ] P1-04 Pin the `marked` and DOMPurify CDN URLs to an exact version with Subresource Integrity.
+- [x] P1-04 Pin `marked` 18.0.14 (`lib/marked.umd.js`) and DOMPurify 3.4.16 with SRI sha384. Evidence: both load
+  in Chromium with integrity checked; the structure check fails on an unpinned CDN script (2026-10-03)
 - [-] P1-05 Make saving the API key opt-in (dropped, D-007: no API keys).
 - [ ] P1-06 Replace Gemini with a local provider (D-007): a settings dialog for base URL, API style (Ollama or
   OpenAI-compatible) and model; reject non-local URLs; remove all key handling and delete `apiKey` from restored
