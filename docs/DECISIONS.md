@@ -39,7 +39,7 @@ P1-04 security issues, not cosmetic ones. Provider choice is revisited in P5-01.
 **Consequences:** Roughly 5 MB limit including file contents (P2-02). Changing the shape needs a migration that reads
 the old shape.
 
-## D-004 Maintainer-reviewed branches  (2026-10-03, status: accepted)
+## D-004 Maintainer-reviewed branches  (2026-10-03, status: superseded by D-009)
 **Context:** Adopting the agent template requires an agreed workflow.
 **Decision:** Agents work on `feature/…` or `fix/…` branches; the maintainer reviews and merges to `main`.
 **Alternatives:** Direct to `main` (simpler for a solo project, but no review point for agent work); GitHub PRs.
@@ -79,6 +79,13 @@ pinned CDN URL with SRI, like `marked` (D-001).
 app stays dependency-free (D-001).
 **Consequences:** Running the browser suite needs Node and a Chromium download; the Python fast checks stay
 toolchain-free.
+
+## D-009 Agents commit, push, and merge  (2026-10-03, status: accepted)
+**Context:** The maintainer granted standing git permission after reviewing the P1-01 branch. Supersedes D-004.
+**Decision:** Agents keep one branch per roadmap item and merge it to `main` with `--no-ff` and push, once the fast
+checks pass and the docs are updated. Force-pushes and history rewrites still need explicit permission.
+**Consequences:** No review point before `main`; the merge commit and HANDOFF session log are the record.
+**Review trigger:** A bad merge reaches `main`, or CI exists (P4-02).
 
 ## Open questions
 

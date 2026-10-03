@@ -12,10 +12,10 @@ Changes: [CHANGELOG.md](CHANGELOG.md). Older sessions: [archive/](archive/README
 
 ## Current state
 
-_Last updated: 2026-10-03, session 2, on `feature/P1-01-sanitise-html` (not merged): DOMPurify, pinned CDN scripts._
+_Last updated: 2026-10-03, session 2, on `main`: DOMPurify and pinned CDN scripts merged; P1-06 starting._
 
 **Where things stand, in one paragraph:** The app works as released on 2025-07-17. Phase 0 (workflow) is done. All open
-questions are answered (D-004 to D-008). Rendering is sanitised (P1-01, P1-02, P1-04, on the branch). The code still
+questions are answered (D-004 to D-008). Rendering is sanitised (P1-01, P1-02, P1-04). The code still
 uses Gemini with a stored key until P1-06. There is no automated browser test yet.
 
 **Verified** (2026-10-03, on the session-2 branch, Linux, Python 3, Chromium in the Claude desktop app)
@@ -37,13 +37,12 @@ uses Gemini with a stored key until P1-06. There is no automated browser test ye
 - Hostile-Markdown test not run without the fix (the temporary revert was blocked by the agent's permissions).
 
 **Gotchas for the next session**
-- Direct pushes to `main` were a one-time permission for session 1 (D-004); use a branch from now on.
+- Agents merge and push their own branches (D-009).
 
 ## Next steps (in order)
 
-1. Maintainer: review and merge `feature/P1-01-sanitise-html`.
-2. P1-06: replace Gemini with a local Ollama / OpenAI-compatible provider.
-3. P4-01: Playwright smoke test with a stubbed model endpoint.
+1. P1-06: replace Gemini with a local Ollama / OpenAI-compatible provider.
+2. P4-01: Playwright smoke test with a stubbed model endpoint.
 
 ## Open questions for maintainers
 
@@ -66,7 +65,7 @@ pinning; `.claude/launch.json` serves the app on port 8000.
 **Not verified:** hostile Markdown without the fix; manual smoke; live AI replies; Firefox.
 **Problems / surprises:** `marked` 18 has no `marked.min.js`; the UMD build is `lib/marked.umd.js`.
 **Corrections:** none.
-**Left undone:** merge (maintainer).
+**Left undone:** none; merged to `main` (D-009).
 **Next session should start with:** P1-06.
 
 ### Session 1: 2026-10-03: adopt the agent workflow

@@ -47,14 +47,16 @@ decision, changelog entry, or handoff rewrite unless they alter a claim those do
 
 ## Working agreement
 
-Maintainer-reviewed branch workflow (D-004; revisit via Q-001).
+Agent-merged branch workflow (D-009).
 
-- Default branch: `main`. Agents work on a branch and never commit directly to `main`.
+- Default branch: `main`. Agents work on a branch per roadmap item, then merge it to `main` (`--no-ff`) and push once
+  the fast checks pass and the docs are updated.
 - Working branch pattern: `feature/<roadmap-id>-<topic>` or `fix/<topic>`.
 - Commit format: imperative subject line, roadmap ID in the subject when one exists (`P1-01: sanitise rendered HTML`).
 - Release/version scheme: semver git tags plus matching changelog headings; not shown in the UI or README (D-005).
-- Agents may commit to their working branch. Pushing, merging, adding a dependency (including a CDN script), and
-  changing the saved-session format need the maintainer's explicit permission.
+- Agents may commit, push, and merge without asking (D-009). Adding a dependency (including a CDN script) and
+  changing the saved-session format still need the maintainer's explicit permission; D-006 to D-008 already approve
+  DOMPurify, the local-model settings, and Playwright.
 
 Never force-push, rewrite shared history, or publish without explicit permission.
 
