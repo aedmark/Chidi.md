@@ -9,12 +9,12 @@ Results live in HANDOFF's "Verified" table; this file is how to get them.
 | --- | --- | --- | --- | --- |
 | Structure | `tests/check_structure.py` | Every ID `main.js` looks up exists once in `index.html`; local assets exist; `innerHTML` only from sanitised renders; CDN scripts pinned with SRI | That anything runs | under a second, Python 3 |
 | Docs | `tools/check_docs.py` | Doc links, roadmap IDs, decisions and questions are consistent | That the docs are true | under a second, Python 3 |
+| Browser smoke | `tests/e2e/smoke.spec.js` | Load, navigate, sessions, sanitising, local-URL rule, both model APIs, old-key cleanup, in Chromium and Firefox; no request leaves the allowed hosts | Scan Folder; Safari; real model output; real CDN availability | ~5 s, Node 22, Playwright browsers |
 | Manual smoke | below | A person's path through the app works in one browser | Other browsers; AI answer quality | 5 minutes, Chromium, optional local model (Ollama) |
 
-No automated browser test exists yet; P4-01 adds a Playwright suite (D-008).
-
 **The fast set** (before every commit): `python3 tests/check_structure.py && python3 tools/check_docs.py`.
-**The full set** (after deleting or moving code, and before merging to `main`): fast set plus the manual smoke.
+**Before merging code to `main`:** fast set plus the browser smoke.
+**The full set** (after deleting or moving code, and before a release): both, plus the manual smoke.
 
 ## Before any run
 
@@ -34,6 +34,20 @@ python3 tests/check_structure.py && python3 tools/check_docs.py
 ```
 
 - A pass ends with `0 error(s)` from each and exit code 0. `check_docs` warnings do not fail the run.
+
+### Browser smoke
+
+```bash
+cd tests/e2e && npm ci && npm test
+```
+
+- Starts its own server on port 8123 (`playwright.config.js`), so it does not clash with a dev server on 8000.
+- Serves `marked` and DOMPurify from `tests/e2e/node_modules`. Their bytes match the SRI hashes in `index.html`, so
+  a version bump in `index.html` must be matched in `tests/e2e/package.json` or the scripts fail to load.
+- Stubs the model server at `http://localhost:11434` (both APIs); set `net.modelReply` in a test to change the reply.
+- Any request to another host fails the test (the `net` fixture). Google Fonts are aborted silently.
+- A pass ends with `16 passed`. Options: `npx playwright test --project=chromium`, `-g "<test name>"`.
+- Writes `test-results/` on failure (gitignored).
 
 ### Manual smoke
 
@@ -82,9 +96,9 @@ waiting for one.
 | Changed area | Minimum checks | Additional evidence |
 | --- | --- | --- |
 | Documentation only | `python3 tools/check_docs.py` | |
-| `index.html` IDs or `elements` | structure check | manual smoke steps touching that element |
-| File loading, history, sessions | fast set | manual smoke 1 to 5, 7 |
-| AI calls or rendering | fast set | manual smoke 6; a hostile `.md` file once P1-01 lands |
+| `index.html` IDs or `elements` | structure check, browser smoke | manual smoke steps touching that element |
+| File loading, history, sessions | fast set, browser smoke | manual smoke 4 (Scan Folder) |
+| AI calls or rendering | fast set, browser smoke | manual smoke 6 against a real model |
 | Security boundary (P1) | fast set | the item's own "done when" test, run before and after the fix |
 
 ## Manual checks (before merging to `main`)
@@ -94,8 +108,9 @@ waiting for one.
 
 ## Environment recipes
 
-Only Python 3 and a browser are needed. In a sandbox without a browser, run the fast set and report the manual
-smoke as not run.
+The app needs only Python 3 and a browser. The browser smoke needs Node 22 and Playwright's browsers
+(`npx playwright install chromium firefox`; cached under `~/.cache/ms-playwright`). In a sandbox without them, run
+the fast set and report the browser and manual smoke as not run.
 
 ## Known pitfalls
 

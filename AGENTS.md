@@ -108,12 +108,13 @@ Record durable preferences here so they survive agent and session changes.
 | `docs/archive/` | Historical material no longer current |
 | `tools/check_docs.py` | Documentation consistency checks |
 | `tests/check_structure.py` | Checks that every element ID `main.js` uses exists in `index.html` |
+| `tests/e2e/` | Playwright browser smoke tests (D-008); dev-only, its own `package.json` |
 | `.claude/skills/` | `/session-start` and `/session-end` workflow skills |
 
 ## Engineering conventions
 
-- Plain ES2020+ JavaScript in one file, no build step, no framework, no npm (D-001). Python 3 standard library only
-  for tooling.
+- Plain ES2020+ JavaScript in one file, no build step, no framework, no npm in the app (D-001). Python 3 standard
+  library for tooling; Node and Playwright only under `tests/e2e/` (D-008).
 - Targets current desktop Chromium (Chrome, Edge) fully; Firefox and Safari work except "Scan Folder", which needs
   the File System Access API. Mobile is not a target.
 - All DOM lookups go through the `elements` object; all mutable data lives in `state`.
@@ -127,11 +128,12 @@ Record durable preferences here so they survive agent and session changes.
 | --- | --- | --- |
 | Local development | A browser on `http://localhost:8000` via `python3 -m http.server`; the CDN; a local Ollama or OpenAI-compatible server if running | `file://` disables Scan Folder; the model server must allow the page's origin (CORS) |
 | CI | None yet (P4-02) | |
+| Playwright (`tests/e2e`) | Node 22, cached Chromium and Firefox; no network needed | Scan Folder cannot be automated |
 
 ## Run and verify
 
-- Setup: none (Python 3 and a Chromium browser).
+- Setup: none to run the app. For browser tests: `cd tests/e2e && npm ci && npx playwright install chromium firefox`.
 - Run: `python3 -m http.server 8000`, then open `http://localhost:8000`.
 - Fast checks: `python3 tests/check_structure.py && python3 tools/check_docs.py`.
-- Full checks: fast checks plus the manual checks in `docs/TESTING.md` (Playwright suite once P4-01 lands, D-008).
+- Full checks: fast checks, then `cd tests/e2e && npm test`, then the manual checks in `docs/TESTING.md`.
 - Detailed test guidance: `docs/TESTING.md`.

@@ -27,6 +27,7 @@ The workflow shared by human and automated contributors. Agent-specific instruct
 ```bash
 python3 tests/check_structure.py
 python3 tools/check_docs.py
+cd tests/e2e && npm test
 ```
 
 Report the exact checks run and any skipped; a partial pass is not a full pass.

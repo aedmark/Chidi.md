@@ -74,6 +74,7 @@ A new one needs maintainer approval; record it here the same session.
 | DOMPurify | 3.4.16, jsDelivr, SRI | Sanitising rendered HTML | D-006 |
 | Google Fonts: Space Mono, VT323 | n/a | Console look | Style only |
 | A local model server | user's choice | All AI features | D-007 |
+| `@playwright/test` (dev only) | 1.63.0, `tests/e2e/package.json` | Browser smoke tests | D-008; also pins `marked` and DOMPurify copies for offline runs |
 
 ## State and caches
 
